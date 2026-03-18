@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+dist
+**/dist
+.git
+.gitignore
+.vscode
+.env
+.env.*
+backend/data/*.jsonl
+backend/data/*.json
+npm-debug.log*

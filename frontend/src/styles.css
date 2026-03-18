@@ -1,0 +1,239 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background: #07111f;
+  color: #e6eef8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 28%),
+    linear-gradient(180deg, #08111e 0%, #030712 100%);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.page-shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 48px 20px 64px;
+}
+
+.hero {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+  align-items: stretch;
+  margin-bottom: 28px;
+}
+
+.hero-copy,
+.hero-card,
+.panel {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(8, 15, 28, 0.82);
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(2, 8, 23, 0.36);
+}
+
+.hero-copy {
+  padding: 32px;
+}
+
+.hero-copy h1 {
+  margin: 10px 0 16px;
+  font-size: clamp(2.2rem, 4vw, 4.4rem);
+  line-height: 1.05;
+}
+
+.hero-copy p,
+.panel p,
+.hero-card p,
+.steps li,
+.hero-list li {
+  color: #bfd0e5;
+}
+
+.eyebrow {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #93c5fd;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.hero-list {
+  margin: 20px 0 0;
+  padding-left: 18px;
+}
+
+.hero-card {
+  padding: 28px;
+}
+
+.content-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+}
+
+.panel {
+  padding: 28px;
+}
+
+.panel-heading h2,
+.panel h2 {
+  margin: 0 0 10px;
+}
+
+.download-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
+.download-form label {
+  display: grid;
+  gap: 8px;
+}
+
+.download-form span {
+  font-size: 0.95rem;
+  color: #dbeafe;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.75);
+  color: #eff6ff;
+  padding: 14px 16px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(56, 189, 248, 0.65);
+  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.16);
+}
+
+textarea {
+  resize: vertical;
+}
+
+.two-columns {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.format-switcher {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.format-switcher button,
+.primary-button {
+  border: none;
+  border-radius: 14px;
+  padding: 14px 18px;
+  transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+}
+
+.format-switcher button {
+  background: rgba(30, 41, 59, 0.9);
+  color: #cbd5e1;
+}
+
+.format-switcher button.is-active {
+  background: linear-gradient(135deg, #38bdf8, #2563eb);
+  color: white;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #22c55e, #14b8a6);
+  color: white;
+  font-weight: 700;
+}
+
+.primary-button:disabled {
+  opacity: 0.75;
+  cursor: wait;
+}
+
+.primary-button:hover:not(:disabled),
+.format-switcher button:hover {
+  transform: translateY(-1px);
+}
+
+.stacked-panels {
+  display: grid;
+  gap: 24px;
+}
+
+.steps {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.accent-panel {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.16), rgba(8, 15, 28, 0.88));
+}
+
+.status {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+}
+
+.status.success {
+  background: rgba(34, 197, 94, 0.14);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #bbf7d0;
+}
+
+.status.error {
+  background: rgba(248, 113, 113, 0.14);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #fecaca;
+}
+
+@media (max-width: 900px) {
+  .hero,
+  .content-grid,
+  .two-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .page-shell {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
