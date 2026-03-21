@@ -1,47 +1,26 @@
-export interface DownloadPayload {
-  environment: 'demo' | 'prod';
-  token: string;
-  contextType: 'Nip' | 'InternalId' | 'NipVatUe' | 'PeppolId';
-  contextValue: string;
-  subjectType: 'Subject1' | 'Subject2' | 'Subject3' | 'SubjectAuthorized';
-  dateType: 'Issue' | 'Invoicing' | 'PermanentStorage';
-  dateFrom: string;
-  dateTo: string;
-  format: 'xml' | 'pdf';
-  email?: string;
-}
+import { fetchInvoicesForDownload, getErrorMessage } from './ksefClient';
+import { buildArchive } from './archiveService';
+import type { DownloadInvoicesRequest } from './types';
 
 interface DownloadResult {
   blob: Blob;
   fileName: string;
 }
 
-const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '';
-const apiBaseUrl = rawApiBaseUrl.replace(/\/$/, '');
+export async function downloadArchive(payload: DownloadInvoicesRequest): Promise<DownloadResult> {
+  try {
+    const invoices = await fetchInvoicesForDownload(payload);
+    const blob = await buildArchive(invoices, payload.format);
+    const today = new Date().toISOString().slice(0, 10);
+    const fileName = `ksefast-${payload.format}-${today}.zip`;
 
-export async function downloadArchive(payload: DownloadPayload): Promise<DownloadResult> {
-  const response = await fetch(`${apiBaseUrl}/api/download`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const contentType = response.headers.get('content-type') ?? '';
-    const errorPayload = contentType.includes('application/json') ? await response.json() : await response.text();
-    const message = typeof errorPayload === 'object' && errorPayload !== null && 'message' in errorPayload
-      ? String(errorPayload.message)
-      : 'Nie udało się pobrać paczki.';
-    throw new Error(message);
+    return {
+      blob,
+      fileName,
+    };
+  } catch (error) {
+    const failure = getErrorMessage(error);
+    throw new Error(failure.message);
   }
-
-  const disposition = response.headers.get('content-disposition') ?? '';
-  const fileNameMatch = disposition.match(/filename="([^"]+)"/i);
-
-  return {
-    blob: await response.blob(),
-    fileName: fileNameMatch?.[1] ?? 'ksefast.zip',
-  };
 }
+

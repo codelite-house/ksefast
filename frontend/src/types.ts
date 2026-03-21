@@ -99,13 +99,3 @@ export interface DownloadedInvoice {
   metadata: InvoiceMetadata;
   xml: string;
 }
-
-export interface LeadEntry {
-  email: string;
-  environment: EnvironmentName;
-  subjectType: SubjectType;
-  dateType: DateType;
-  dateFrom: string;
-  dateTo: string;
-  createdAt: string;
-}

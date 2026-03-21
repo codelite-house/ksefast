@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import { renderPdfFromXml } from '@mdab25/ksef-pdf';
 
-import type { DownloadFormat, DownloadedInvoice } from '../types.js';
+import type { DownloadFormat, DownloadedInvoice } from './types';
 
 function sanitizeFilePart(value: string): string {
   return value
@@ -19,7 +19,7 @@ function buildInvoiceFileName(invoice: DownloadedInvoice, extension: string): st
 export async function buildArchive(
   invoices: DownloadedInvoice[],
   format: DownloadFormat,
-): Promise<Buffer> {
+): Promise<Blob> {
   const zip = new JSZip();
 
   for (const invoice of invoices) {
@@ -29,7 +29,8 @@ export async function buildArchive(
     }
 
     const pdf = await renderPdfFromXml(invoice.xml);
-    zip.file(buildInvoiceFileName(invoice, 'pdf'), Buffer.from(pdf));
+    const pdfData = pdf instanceof Uint8Array ? pdf : new Uint8Array(pdf);
+    zip.file(buildInvoiceFileName(invoice, 'pdf'), pdfData);
   }
 
   zip.file(
@@ -54,5 +55,5 @@ export async function buildArchive(
     ),
   );
 
-  return zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+  return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
 }

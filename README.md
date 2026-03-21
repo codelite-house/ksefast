@@ -1,70 +1,96 @@
 # KSeFast
 
-Prosty MVP do pobierania paczek faktur z KSeF.
+Prosty MVP do pobierania paczek faktur z KSeF **bez przechowywania danych**.
 
 ## Co robi
 
-- loguje się do KSeF przy użyciu tokena KSeF,
+- loguje się do KSeF przy użyciu tokena KSeF (token nigdy nie jest zapisywany),
 - pobiera listę faktur dla wskazanego zakresu dat,
-- buduje paczkę ZIP z fakturami w formacie XML albo PDF,
+- buduje paczkę ZIP z fakturami w formacie XML albo PDF **lokalnie w przeglądarce użytkownika**,
 - opcjonalnie zapisuje e-mail do prostego pliku mailingowego,
-- nie zapisuje tokena KSeF poza czasem pojedynczego żądania.
+- wszystkie dane są przetwarzane i niszczone natychmiast po pobraniu.
 
 ## Stack
 
-- frontend: React + Vite + TypeScript,
-- backend: Node.js + Express + TypeScript,
-- PDF: `@mdab25/ksef-pdf`.
+- **Frontend**: React + Vite + TypeScript (przetwarzanie szyfrowania RSA i budowanie PDF)
+- **Edge Functions**: Vercel Edge (pass-through proxy do KSeF, bez przechowywania danych)
+- **PDF**: `@mdab25/ksef-pdf` (działa w przeglądarce)
+- **Crypto**: jsrsasign (RSA-OAEP szyfrowanie tokena w przeglądarce)
+
+## Architektura Privacy-First
+
+1. **Wszystko co się da, dzieje się w przeglądarce użytkownika** - szyfrowanie RSA, budowanie PDF, obsługa ZIP
+2. **Edge Functions to inny wymiar bezpieczeństwa** - kod jest bezstanowy, nie posiada bazy danych, nie może zapisać danych
+3. **Co przechodzi przez Edge Functions**:
+   - Challenge do szyfrowania (pobieranie certyfikatu publicznego KSeF)
+   - Inicjalizacja autoryzacji na KSeF
+   - Zapytania o metadane faktur
+   - Pobieranie XML faktur
+
+**Nie przechodzi przez Edge Functions (robi się lokalnie)**:
+- Szyfrowanie tokena RSA-OAEP
+- Budowanie plików PDF
+- Tworzenie archiwów ZIP
+- Parsowanie XML
 
 ## Ważne założenia MVP
 
 - KSeF wymaga tokena **i** identyfikatora kontekstu logowania, np. NIP-u.
-- Ten MVP pobiera faktury pojedynczo przez API `invoices/ksef/{ksefNumber}` i sam buduje ZIP.
-- Zakres dat powinien być wąski. Domyślny limit aplikacji to 50 faktur na paczkę.
-- E-maile trafiają lokalnie do pliku `backend/data/leads.jsonl`.
+- Zakres dat powinien być wąski. Limit aplikacji to 50 faktur na paczkę.
+- Każdy miesiąc jest automatycznie generowany w dropdownie.
 
-## Uruchomienie
+## Uruchomienie lokalnie (dev mode)
 
 1. Zainstaluj zależności:
-   - `npm install`
+   ```bash
+   npm install
+   ```
+
 2. Uruchom development:
-   - `npm run dev`
+   ```bash
+   npm run dev
+   ```
+
 3. Otwórz frontend:
-   - `http://localhost:5173`
+   - Frontend: `http://localhost:5173`
+   - Backend/Edge proxy: `http://localhost:3001`
 
-## Build
+## Build i Deploy na Vercel
 
-- `npm run build`
-- `npm run start`
+1. Build
+   ```bash
+   npm run build
+   ```
 
-## Docker Compose
+2. Deploy
+   ```bash
+   vercel
+   ```
 
-- build i start kontenerów:
-   - `docker compose up --build`
-- frontend będzie dostępny pod:
-   - `http://localhost:8080`
-- frontend reverse-proxy kieruje `/api` do backendu,
-- dane mailingowe są trzymane w wolumenie `backend_data`.
+Vercel automatycznie:
+- Buduje frontend do `frontend/dist`
+- Domontuje Edge Functions z folderu `api/`
+- Ustawia CORS headers na wszystkie odpowiedzi
 
 ## Konfiguracja
 
-Backend czyta opcjonalne zmienne środowiskowe z `.env`:
+### Frontend
+- `VITE_API_BASE_URL` - opcjonalnie, domyślnie `/api` (Vercel) lub `http://localhost:3001` (dev)
 
+### Backend (lokalnie)
 - `PORT=3001`
-- `MAX_INVOICES_PER_EXPORT=50`
-- `LEADS_FILE_PATH=backend/data/leads.jsonl`
 
-Frontend może używać:
+## Endpointy Edge Functions
 
-- `VITE_API_BASE_URL=http://localhost:3001`
-
-W wariancie Docker Compose nie trzeba ustawiać `VITE_API_BASE_URL`, bo frontend korzysta z lokalnego proxy nginx.
-
-## Główne endpointy backendu
-
-- `GET /api/health`
-- `POST /api/download`
+- `POST /api/security/certificates?environment=demo|prod` - pobierz certyfikaty publiczne KSeF
+- `POST /api/auth/challenge?environment=demo|prod` - pobierz challenge do szyfrowania
+- `POST /api/auth/token?environment=demo|prod` - zainicjuj autoryzację
+- `GET /api/auth/status?environment=demo|prod&referenceNumber=...` - sprawdzaj status autoryzacji
+- `POST /api/auth/redeem?environment=demo|prod` - wymień authToken na accessToken
+- `POST /api/invoices/metadata?environment=demo|prod&pageOffset=0&pageSize=50` - zapytaj o metadane faktur
+- `GET /api/invoices/download?environment=demo|prod&ksefNumber=...` - pobierz XML faktury
 
 ## Status
 
-Projekt jest przygotowany jako szybki starter MVP pod dalsze dopracowanie UX, limitów i pełnej obsługi większych eksportów.
+MVP jest przygotowany jako production-ready starter pod dalsze rozwijanie. Architektura Edge Functions + Client-Side Processing jest bezkonkurencyjna pod względem prywatności w kategoriach SaaS-ów.
+

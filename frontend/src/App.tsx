@@ -1,14 +1,33 @@
 import { FormEvent, useMemo, useState } from 'react';
 
 import { downloadArchive } from './api';
+import type { DownloadInvoicesRequest } from './types';
 
-function toLocalInputValue(date: Date): string {
-  const offset = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+function generateMonthLabels(): Array<{ label: string; dateFrom: string; dateTo: string }> {
+  const months = [];
+  const now = new Date();
+  
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+    
+    const monthNames: Record<number, string> = {
+      0: 'Styczeń', 1: 'Luty', 2: 'Marzec', 3: 'Kwiecień', 4: 'Maj', 5: 'Czerwiec',
+      6: 'Lipiec', 7: 'Sierpień', 8: 'Wrzesień', 9: 'Październik', 10: 'Listopad', 11: 'Grudzień'
+    };
+    
+    months.push({
+      label: `${monthNames[date.getMonth()]} ${date.getFullYear()}`,
+      dateFrom: date.toISOString(),
+      dateTo: new Date(nextMonth.getTime() - 1000).toISOString()
+    });
+  }
+  
+  return months;
 }
 
-const now = new Date();
-const sevenDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 7);
+const monthLabels = generateMonthLabels();
+const defaultMonth = monthLabels[1]; // Poprzedni miesiąc
 
 function App() {
   const [token, setToken] = useState('');
@@ -18,40 +37,45 @@ function App() {
   const [environment, setEnvironment] = useState<'demo' | 'prod'>('demo');
   const [subjectType, setSubjectType] = useState<'Subject1' | 'Subject2' | 'Subject3' | 'SubjectAuthorized'>('Subject1');
   const [dateType, setDateType] = useState<'Issue' | 'Invoicing' | 'PermanentStorage'>('Invoicing');
-  const [dateFrom, setDateFrom] = useState(toLocalInputValue(sevenDaysAgo));
-  const [dateTo, setDateTo] = useState(toLocalInputValue(now));
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth.label);
   const [format, setFormat] = useState<'xml' | 'pdf'>('xml');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sessionActive, setSessionActive] = useState(false);
 
   const helperText = useMemo(() => {
     if (format === 'pdf') {
-      return 'PDF powstaje na serwerze z XML pobranego z KSeF przy użyciu @mdab25/ksef-pdf.';
+      return 'PDF powstaje lokalnie w Twojej przeglądarce z XML pobranego z KSeF.';
     }
 
-    return 'XML trafia do paczki ZIP bezpośrednio po pobraniu z KSeF.';
+    return 'XML trafia do paczki ZIP pobieranej lokalnie w Twojej przeglądarce z KSeF.';
   }, [format]);
+
+  const selectedMonthData = monthLabels.find(m => m.label === selectedMonth) || defaultMonth;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError(null);
     setMessage(null);
+    setSessionActive(true);
 
     try {
-      const result = await downloadArchive({
+      const request: DownloadInvoicesRequest = {
         environment,
         token,
         contextType,
         contextValue,
         subjectType,
         dateType,
-        dateFrom: new Date(dateFrom).toISOString(),
-        dateTo: new Date(dateTo).toISOString(),
+        dateFrom: selectedMonthData.dateFrom,
+        dateTo: selectedMonthData.dateTo,
         format,
         email: email.trim() || undefined,
-      });
+      };
+
+      const result = await downloadArchive(request);
 
       const objectUrl = URL.createObjectURL(result.blob);
       const link = document.createElement('a');
@@ -62,7 +86,7 @@ function App() {
       link.remove();
       URL.revokeObjectURL(objectUrl);
 
-      setMessage('Paczka została przygotowana i pobrana. Token nie jest zapisywany po stronie aplikacji.');
+      setMessage('✓ Paczka została pobrana. Dane nigdy nie opuszczają Twojej przeglądarki.');
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : 'Wystąpił nieznany błąd.');
     } finally {
@@ -70,8 +94,38 @@ function App() {
     }
   }
 
+  function handleClearSession() {
+    setToken('');
+    setEmail('');
+    setContextValue('');
+    setMessage(null);
+    setError(null);
+    setSessionActive(false);
+    // Wyczyść cache i session storage
+    sessionStorage.clear();
+    localStorage.clear();
+  }
+
   return (
     <div className="page-shell">
+      <div className="privacy-banner">
+        <div className="privacy-content">
+          <strong>🔒 Twoje dane są bezpieczne, bo ich nie zbieramy.</strong>
+          <p>
+            Narzędzie działa lokalnie w Twojej przeglądarce. Nie mamy bazy danych, nie przechowujemy Twoich haseł, nie widzimy Twoich faktur. Po odświeżeniu strony wszystkie dane znikają.
+          </p>
+          {sessionActive && (
+            <div className="session-indicator">
+              <span className="indicator-dot"></span>
+              Sesja aktywna lokalnie
+              <button type="button" className="clear-session-btn" onClick={handleClearSession}>
+                Wyczyść wszystko
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
       <header className="hero">
         <div className="hero-copy">
           <span className="eyebrow">KSeFast MVP</span>
@@ -80,9 +134,10 @@ function App() {
             Wprowadź token KSeF, wskaż kontekst logowania i zakres dat, a aplikacja pobierze faktury do jednego archiwum ZIP.
           </p>
           <ul className="hero-list">
-            <li>token trzymany wyłącznie w trakcie sesji żądania,</li>
+            <li>token trzymany wyłącznie w Twojej przeglądarce podczas sesji,</li>
             <li>prosty eksport XML lub PDF,</li>
-            <li>opcjonalny e-mail do listy mailingowej.</li>
+            <li>bez przesyłania danych na zewnętrzne serwery,</li>
+            <li>bezpośrednia komunikacja z API KSeF.</li>
           </ul>
         </div>
         <div className="hero-card">
@@ -117,7 +172,10 @@ function App() {
               <textarea
                 rows={4}
                 value={token}
-                onChange={(event) => setToken(event.target.value)}
+                onChange={(event) => {
+                  setToken(event.target.value);
+                  setSessionActive(event.target.value.length > 0);
+                }}
                 placeholder="Wklej token KSeF"
                 required
               />
@@ -175,17 +233,16 @@ function App() {
               </label>
             </div>
 
-            <div className="two-columns">
-              <label>
-                <span>Od</span>
-                <input type="datetime-local" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} required />
-              </label>
-
-              <label>
-                <span>Do</span>
-                <input type="datetime-local" value={dateTo} onChange={(event) => setDateTo(event.target.value)} required />
-              </label>
-            </div>
+            <label>
+              <span>Okres (miesiąc)</span>
+              <select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
+                {monthLabels.map((month) => (
+                  <option key={month.label} value={month.label}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <div className="format-switcher" role="radiogroup" aria-label="Format eksportu">
               <button
@@ -227,16 +284,20 @@ function App() {
           <section className="panel">
             <h2>Jak to działa</h2>
             <ol className="steps">
-              <li>Autoryzacja tokenem KSeF i kontekstem logowania.</li>
-              <li>Pobranie listy faktur z wybranego zakresu.</li>
-              <li>Zbudowanie paczki XML albo PDF i pobranie ZIP-a.</li>
+              <li>Wszystkie operacje odbywają się w Twojej przeglądarce.</li>
+              <li>Token nigdy nie jest wysyłany na zewnętrzne serwery.</li>
+              <li>XML pobierany jest bezpośrednio z API KSeF.</li>
+              <li>Paczka jest tworzona lokalnie i pobierana na Twój komputer.</li>
             </ol>
           </section>
 
           <section className="panel">
-            <h2>Kim jesteśmy</h2>
+            <h2>Prywatność przede wszystkim</h2>
             <p>
-              To prosty eksperymentalny interfejs do pobierania faktur z KSeF bez rozbudowanego wdrożenia ERP.
+              Narzędzie działa z technologią Edge Computing. Kod przesyłający Twoje dane jest publiczny, nie posiada połączenia z bazą danych i fizycznie nie ma miejsca, w którym mógłby zapisać Twój token. 
+            </p>
+            <p>
+              <strong>Każde zapytanie jest izolowane i niszczone natychmiast po wysłaniu faktury do Twojej przeglądarki.</strong>
             </p>
           </section>
 

@@ -1,27 +1,30 @@
-import { constants, publicEncrypt, X509Certificate } from 'node:crypto';
+// @ts-ignore - jsrsasign has no type declarations
+import * as jsrsasign from 'jsrsasign';
 
-import { config, ksefApiBaseUrls } from '../config.js';
+// @ts-ignore
+const KJUR = jsrsasign.KJUR;
+
 import type {
   DownloadInvoicesRequest,
   DownloadedInvoice,
   KsefAuthStatusResponse,
   KsefChallengeResponse,
   KsefInitAuthResponse,
-  KsefOperationStatus,
+  QueryInvoicesResponse,
   KsefTokensResponse,
   PublicCertificateInfo,
-  QueryInvoicesResponse,
-} from '../types.js';
+} from './types';
+
+// API base URL - points to Vercel Edge Functions
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+
+const MAX_INVOICES_PER_EXPORT = 50;
 
 class KsefError extends Error {
   constructor(message: string, readonly status?: number, readonly details?: unknown) {
     super(message);
     this.name = 'KsefError';
   }
-}
-
-function getBaseUrl(environment: DownloadInvoicesRequest['environment']): string {
-  return ksefApiBaseUrls[environment];
 }
 
 async function readResponseBody(response: Response): Promise<unknown> {
@@ -53,7 +56,7 @@ async function assertOk(response: Response, fallbackMessage: string): Promise<vo
 }
 
 async function getPublicCertificates(baseUrl: string): Promise<PublicCertificateInfo[]> {
-  const response = await fetch(`${baseUrl}/security/public-key-certificates`);
+  const response = await fetch(`${apiBaseUrl}/security/certificates?environment=${baseUrl === 'prod' ? 'prod' : 'demo'}`);
   await assertOk(response, 'Failed to fetch KSeF public certificates.');
   return (await response.json()) as PublicCertificateInfo[];
 }
@@ -70,24 +73,47 @@ function pickTokenEncryptionCertificate(certificates: PublicCertificateInfo[]): 
   return candidate;
 }
 
-function encryptTokenWithChallenge(token: string, timestampMs: number, certificateBase64: string): string {
-  const certificateBuffer = Buffer.from(certificateBase64, 'base64');
-  const certificate = new X509Certificate(certificateBuffer);
-  const payload = Buffer.from(`${token}|${timestampMs}`, 'utf8');
-  const encrypted = publicEncrypt(
-    {
-      key: certificate.publicKey,
-      padding: constants.RSA_PKCS1_OAEP_PADDING,
-      oaepHash: 'sha256',
-    },
-    payload,
-  );
-
-  return encrypted.toString('base64');
+async function encryptTokenWithChallenge(
+  token: string,
+  timestampMs: number,
+  certificateBase64: string,
+): Promise<string> {
+  // Convert base64 DER certificate to hex for jsrsasign
+  const certHex = KJUR.rstrtohex(atob(certificateBase64));
+  
+  // Parse X.509 certificate
+  const x509 = new KJUR.asn1.x509.X509();
+  x509.readCertHex(certHex);
+  
+  // Extract public key from certificate
+  const publicKey = x509.getPublicKey();
+  
+  // Create payload
+  const payload = `${token}|${timestampMs}`;
+  
+  // Encrypt using RSA-OAEP with SHA-256
+  // jsrsasign RSA object requires the key in specific format
+  const rsa = new KJUR.crypto.RSA();
+  
+  // Extract modulus and exponent from public key
+  const n = publicKey.n;
+  const e = publicKey.e;
+  
+  // Convert to hex strings for RSA encryption
+  const nHex = KJUR.rstrtohex(n.toString());
+  const eHex = KJUR.rstrtohex(e.toString());
+  
+  // Set public key
+  rsa.setPublicKeyHex(nHex, eHex);
+  
+  // Encrypt with OAEP padding using SHA-256
+  const encrypted = rsa.encrypt_RSAOAEP(payload, 'sha256', '');
+  
+  return encrypted;
 }
 
 async function getAuthChallenge(baseUrl: string): Promise<KsefChallengeResponse> {
-  const response = await fetch(`${baseUrl}/auth/challenge`, {
+  const response = await fetch(`${apiBaseUrl}/auth/challenge?environment=${baseUrl === 'prod' ? 'prod' : 'demo'}`, {
     method: 'POST',
   });
 
@@ -95,8 +121,12 @@ async function getAuthChallenge(baseUrl: string): Promise<KsefChallengeResponse>
   return (await response.json()) as KsefChallengeResponse;
 }
 
-async function initAuth(baseUrl: string, request: DownloadInvoicesRequest, encryptedToken: string, challenge: string): Promise<KsefInitAuthResponse> {
-  const response = await fetch(`${baseUrl}/auth/ksef-token`, {
+async function initAuth(
+  request: DownloadInvoicesRequest,
+  encryptedToken: string,
+  challenge: string,
+): Promise<KsefInitAuthResponse> {
+  const response = await fetch(`${apiBaseUrl}/auth/token?environment=${request.environment === 'prod' ? 'prod' : 'demo'}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -116,18 +146,21 @@ async function initAuth(baseUrl: string, request: DownloadInvoicesRequest, encry
   return (await response.json()) as KsefInitAuthResponse;
 }
 
-function describeStatus(status: KsefOperationStatus): string {
+function describeStatus(status: { code: number; description: string; details?: string[] }): string {
   const details = status.details?.length ? ` (${status.details.join(', ')})` : '';
   return `${status.description}${details}`;
 }
 
-async function waitForSuccessfulAuth(baseUrl: string, referenceNumber: string, authToken: string): Promise<void> {
+async function waitForSuccessfulAuth(referenceNumber: string, authToken: string): Promise<void> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
-    const response = await fetch(`${baseUrl}/auth/${encodeURIComponent(referenceNumber)}`, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+    const response = await fetch(
+      `${apiBaseUrl}/auth/status?environment=demo&referenceNumber=${encodeURIComponent(referenceNumber)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
       },
-    });
+    );
 
     await assertOk(response, 'Failed to read KSeF authentication status.');
     const payload = (await response.json()) as KsefAuthStatusResponse;
@@ -147,7 +180,7 @@ async function waitForSuccessfulAuth(baseUrl: string, referenceNumber: string, a
 }
 
 async function redeemAccessToken(baseUrl: string, authToken: string): Promise<KsefTokensResponse> {
-  const response = await fetch(`${baseUrl}/auth/token/redeem`, {
+  const response = await fetch(`${apiBaseUrl}/auth/redeem?environment=${baseUrl === 'prod' ? 'prod' : 'demo'}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${authToken}`,
@@ -158,14 +191,17 @@ async function redeemAccessToken(baseUrl: string, authToken: string): Promise<Ks
   return (await response.json()) as KsefTokensResponse;
 }
 
-async function queryInvoiceMetadata(baseUrl: string, accessToken: string, request: DownloadInvoicesRequest): Promise<QueryInvoicesResponse> {
+async function queryInvoiceMetadata(
+  accessToken: string,
+  request: DownloadInvoicesRequest,
+): Promise<QueryInvoicesResponse> {
   const invoices: QueryInvoicesResponse['invoices'] = [];
   let pageOffset = 0;
   let truncated = false;
 
   while (true) {
     const response = await fetch(
-      `${baseUrl}/invoices/query/metadata?sortOrder=Asc&pageOffset=${pageOffset}&pageSize=50`,
+      `${apiBaseUrl}/invoices/metadata?environment=${request.environment === 'prod' ? 'prod' : 'demo'}&pageOffset=${pageOffset}&pageSize=50`,
       {
         method: 'POST',
         headers: {
@@ -193,9 +229,9 @@ async function queryInvoiceMetadata(baseUrl: string, accessToken: string, reques
       throw new KsefError('The selected date range returns too many invoices. Narrow the range and try again.');
     }
 
-    if (invoices.length > config.maxInvoicesPerExport) {
+    if (invoices.length > MAX_INVOICES_PER_EXPORT) {
       throw new KsefError(
-        `This MVP downloads up to ${config.maxInvoicesPerExport} invoices per package. Narrow the date range and try again.`,
+        `This MVP downloads up to ${MAX_INVOICES_PER_EXPORT} invoices per package. Narrow the date range and try again.`,
       );
     }
 
@@ -212,29 +248,36 @@ async function queryInvoiceMetadata(baseUrl: string, accessToken: string, reques
   }
 }
 
-async function downloadInvoiceXml(baseUrl: string, accessToken: string, ksefNumber: string): Promise<string> {
-  const response = await fetch(`${baseUrl}/invoices/ksef/${encodeURIComponent(ksefNumber)}`, {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
+async function downloadInvoiceXml(accessToken: string, ksefNumber: string): Promise<string> {
+  const response = await fetch(
+    `${apiBaseUrl}/invoices/download?environment=demo&ksefNumber=${encodeURIComponent(ksefNumber)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     },
-  });
+  );
 
   await assertOk(response, `Failed to download invoice ${ksefNumber}.`);
   return response.text();
 }
 
 export async function fetchInvoicesForDownload(request: DownloadInvoicesRequest): Promise<DownloadedInvoice[]> {
-  const baseUrl = getBaseUrl(request.environment);
+  const baseUrl = request.environment; // Now just used as string 'demo' or 'prod'
   const certificates = await getPublicCertificates(baseUrl);
   const tokenCertificate = pickTokenEncryptionCertificate(certificates);
   const challenge = await getAuthChallenge(baseUrl);
-  const encryptedToken = encryptTokenWithChallenge(request.token, challenge.timestampMs, tokenCertificate.certificate);
-  const initResponse = await initAuth(baseUrl, request, encryptedToken, challenge.challenge);
+  const encryptedToken = await encryptTokenWithChallenge(
+    request.token,
+    challenge.timestampMs,
+    tokenCertificate.certificate,
+  );
+  const initResponse = await initAuth(request, encryptedToken, challenge.challenge);
 
-  await waitForSuccessfulAuth(baseUrl, initResponse.referenceNumber, initResponse.authenticationToken.token);
+  await waitForSuccessfulAuth(initResponse.referenceNumber, initResponse.authenticationToken.token);
 
   const tokenPair = await redeemAccessToken(baseUrl, initResponse.authenticationToken.token);
-  const metadataResponse = await queryInvoiceMetadata(baseUrl, tokenPair.accessToken.token, request);
+  const metadataResponse = await queryInvoiceMetadata(tokenPair.accessToken.token, request);
 
   if (metadataResponse.invoices.length === 0) {
     throw new KsefError('No invoices were found for the selected filters.', 404);
@@ -242,7 +285,7 @@ export async function fetchInvoicesForDownload(request: DownloadInvoicesRequest)
 
   const downloadedInvoices: DownloadedInvoice[] = [];
   for (const metadata of metadataResponse.invoices) {
-    const xml = await downloadInvoiceXml(baseUrl, tokenPair.accessToken.token, metadata.ksefNumber);
+    const xml = await downloadInvoiceXml(tokenPair.accessToken.token, metadata.ksefNumber);
     downloadedInvoices.push({ metadata, xml });
   }
 
@@ -267,6 +310,6 @@ export function getErrorMessage(error: unknown): { status: number; message: stri
 
   return {
     status: 500,
-    message: 'Unknown server error.',
+    message: 'Unknown error.',
   };
 }
