@@ -1,14 +1,8 @@
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
-    environment:
-      PORT: 3001
-      MAX_INVOICES_PER_EXPORT: 50
-      LEADS_FILE_PATH: backend/data/leads.jsonl
-    volumes:
-      - backend_data:/app/backend/data
+      context: .
+      dockerfile: Dockerfile.backend
     expose:
       - "3001"
     restart: unless-stopped
@@ -22,6 +16,3 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
-
-volumes:
-  backend_data:

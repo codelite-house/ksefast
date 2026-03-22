@@ -17,5 +17,8 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.94.5"
   }
 }

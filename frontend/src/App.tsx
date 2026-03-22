@@ -1,28 +1,42 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { downloadArchive } from './api';
-import type { DownloadInvoicesRequest } from './types';
+import { useDownloadInvoices } from "./hooks/useDownloadInvoices";
+import type { DownloadInvoicesRequest } from "./types";
 
-function generateMonthLabels(): Array<{ label: string; dateFrom: string; dateTo: string }> {
+function generateMonthLabels(): Array<{
+  label: string;
+  dateFrom: string;
+  dateTo: string;
+}> {
   const months = [];
   const now = new Date();
-  
+
   for (let i = 0; i < 12; i++) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-    
+
     const monthNames: Record<number, string> = {
-      0: 'Styczeń', 1: 'Luty', 2: 'Marzec', 3: 'Kwiecień', 4: 'Maj', 5: 'Czerwiec',
-      6: 'Lipiec', 7: 'Sierpień', 8: 'Wrzesień', 9: 'Październik', 10: 'Listopad', 11: 'Grudzień'
+      0: "Styczeń",
+      1: "Luty",
+      2: "Marzec",
+      3: "Kwiecień",
+      4: "Maj",
+      5: "Czerwiec",
+      6: "Lipiec",
+      7: "Sierpień",
+      8: "Wrzesień",
+      9: "Październik",
+      10: "Listopad",
+      11: "Grudzień",
     };
-    
+
     months.push({
       label: `${monthNames[date.getMonth()]} ${date.getFullYear()}`,
       dateFrom: date.toISOString(),
-      dateTo: new Date(nextMonth.getTime() - 1000).toISOString()
+      dateTo: new Date(nextMonth.getTime() - 1000).toISOString(),
     });
   }
-  
+
   return months;
 }
 
@@ -30,78 +44,88 @@ const monthLabels = generateMonthLabels();
 const defaultMonth = monthLabels[1]; // Poprzedni miesiąc
 
 function App() {
-  const [token, setToken] = useState('');
-  const [email, setEmail] = useState('');
-  const [contextType, setContextType] = useState<'Nip' | 'InternalId' | 'NipVatUe' | 'PeppolId'>('Nip');
-  const [contextValue, setContextValue] = useState('');
-  const [environment, setEnvironment] = useState<'demo' | 'prod'>('demo');
-  const [subjectType, setSubjectType] = useState<'Subject1' | 'Subject2' | 'Subject3' | 'SubjectAuthorized'>('Subject1');
-  const [dateType, setDateType] = useState<'Issue' | 'Invoicing' | 'PermanentStorage'>('Invoicing');
+  const [token, setToken] = useState("");
+  const [email, setEmail] = useState("");
+  const [contextType, setContextType] = useState<
+    "Nip" | "InternalId" | "NipVatUe" | "PeppolId"
+  >("Nip");
+  const [contextValue, setContextValue] = useState("");
+  const [environment, setEnvironment] = useState<"demo" | "prod">("demo");
+  const [subjectType, setSubjectType] = useState<
+    "Subject1" | "Subject2" | "Subject3" | "SubjectAuthorized"
+  >("Subject1");
+  const [dateType, setDateType] = useState<
+    "Issue" | "Invoicing" | "PermanentStorage"
+  >("Invoicing");
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth.label);
-  const [format, setFormat] = useState<'xml' | 'pdf'>('xml');
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [format, setFormat] = useState<"xml" | "pdf">("xml");
   const [sessionActive, setSessionActive] = useState(false);
 
+  const {
+    mutate: downloadInvoices,
+    isPending,
+    isSuccess,
+    isError,
+    error: downloadError,
+    reset: resetDownload,
+  } = useDownloadInvoices();
+
   const helperText = useMemo(() => {
-    if (format === 'pdf') {
-      return 'PDF powstaje lokalnie w Twojej przeglądarce z XML pobranego z KSeF.';
+    if (format === "pdf") {
+      return "PDF powstaje lokalnie w Twojej przeglądarce z XML pobranego z KSeF.";
     }
 
-    return 'XML trafia do paczki ZIP pobieranej lokalnie w Twojej przeglądarce z KSeF.';
+    return "XML trafia do paczki ZIP pobieranej lokalnie w Twojej przeglądarce z KSeF.";
   }, [format]);
 
-  const selectedMonthData = monthLabels.find(m => m.label === selectedMonth) || defaultMonth;
+  const selectedMonthData =
+    monthLabels.find((m) => m.label === selectedMonth) || defaultMonth;
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (isSuccess) {
+      // reset mutation state po 8s żeby komunikat sukcesu zniknął
+      const id = setTimeout(() => resetDownload(), 8000);
+      return () => clearTimeout(id);
+    }
+  }, [isSuccess, resetDownload]);
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
-    setError(null);
-    setMessage(null);
     setSessionActive(true);
 
-    try {
-      const request: DownloadInvoicesRequest = {
-        environment,
-        token,
-        contextType,
-        contextValue,
-        subjectType,
-        dateType,
-        dateFrom: selectedMonthData.dateFrom,
-        dateTo: selectedMonthData.dateTo,
-        format,
-        email: email.trim() || undefined,
-      };
+    const request: DownloadInvoicesRequest = {
+      environment,
+      token,
+      contextType,
+      contextValue,
+      subjectType,
+      dateType,
+      dateFrom: selectedMonthData.dateFrom,
+      dateTo: selectedMonthData.dateTo,
+      format,
+      email: email.trim() || undefined,
+    };
 
-      const result = await downloadArchive(request);
-
-      const objectUrl = URL.createObjectURL(result.blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = result.fileName;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(objectUrl);
-
-      setMessage('✓ Paczka została pobrana. Dane nigdy nie opuszczają Twojej przeglądarki.');
-    } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : 'Wystąpił nieznany błąd.');
-    } finally {
-      setBusy(false);
-    }
+    downloadInvoices(request, {
+      onSuccess: (result) => {
+        const objectUrl = URL.createObjectURL(result.blob);
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = result.fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+      },
+    });
   }
 
   function handleClearSession() {
-    setToken('');
-    setEmail('');
-    setContextValue('');
-    setMessage(null);
-    setError(null);
+    setToken("");
+    setEmail("");
+    setContextValue("");
     setSessionActive(false);
-    // Wyczyść cache i session storage
+    resetDownload();
     sessionStorage.clear();
     localStorage.clear();
   }
@@ -112,13 +136,19 @@ function App() {
         <div className="privacy-content">
           <strong>🔒 Twoje dane są bezpieczne, bo ich nie zbieramy.</strong>
           <p>
-            Narzędzie działa lokalnie w Twojej przeglądarce. Nie mamy bazy danych, nie przechowujemy Twoich haseł, nie widzimy Twoich faktur. Po odświeżeniu strony wszystkie dane znikają.
+            Narzędzie działa lokalnie w Twojej przeglądarce. Nie mamy bazy
+            danych, nie przechowujemy Twoich haseł, nie widzimy Twoich faktur.
+            Po odświeżeniu strony wszystkie dane znikają.
           </p>
           {sessionActive && (
             <div className="session-indicator">
               <span className="indicator-dot"></span>
               Sesja aktywna lokalnie
-              <button type="button" className="clear-session-btn" onClick={handleClearSession}>
+              <button
+                type="button"
+                className="clear-session-btn"
+                onClick={handleClearSession}
+              >
                 Wyczyść wszystko
               </button>
             </div>
@@ -131,10 +161,13 @@ function App() {
           <span className="eyebrow">KSeFast MVP</span>
           <h1>Pobierz paczkę faktur z KSeF jako XML albo PDF.</h1>
           <p>
-            Wprowadź token KSeF, wskaż kontekst logowania i zakres dat, a aplikacja pobierze faktury do jednego archiwum ZIP.
+            Wprowadź token KSeF, wskaż kontekst logowania i zakres dat, a
+            aplikacja pobierze faktury do jednego archiwum ZIP.
           </p>
           <ul className="hero-list">
-            <li>token trzymany wyłącznie w Twojej przeglądarce podczas sesji,</li>
+            <li>
+              token trzymany wyłącznie w Twojej przeglądarce podczas sesji,
+            </li>
             <li>prosty eksport XML lub PDF,</li>
             <li>bez przesyłania danych na zewnętrzne serwery,</li>
             <li>bezpośrednia komunikacja z API KSeF.</li>
@@ -143,10 +176,12 @@ function App() {
         <div className="hero-card">
           <strong>Ważne</strong>
           <p>
-            KSeF wymaga nie tylko tokena, ale też identyfikatora kontekstu logowania, np. NIP-u firmy.
+            KSeF wymaga nie tylko tokena, ale też identyfikatora kontekstu
+            logowania, np. NIP-u firmy.
           </p>
           <p>
-            Ten MVP działa najlepiej dla wąskich zakresów dat. Jedna paczka obsługuje maksymalnie 50 faktur.
+            Ten MVP działa najlepiej dla wąskich zakresów dat. Jedna paczka
+            obsługuje maksymalnie 50 faktur.
           </p>
         </div>
       </header>
@@ -161,7 +196,12 @@ function App() {
           <form className="download-form" onSubmit={handleSubmit}>
             <label>
               <span>Środowisko</span>
-              <select value={environment} onChange={(event) => setEnvironment(event.target.value as 'demo' | 'prod')}>
+              <select
+                value={environment}
+                onChange={(event) =>
+                  setEnvironment(event.target.value as "demo" | "prod")
+                }
+              >
                 <option value="demo">Demo</option>
                 <option value="prod">Produkcja</option>
               </select>
@@ -186,7 +226,15 @@ function App() {
                 <span>Typ kontekstu</span>
                 <select
                   value={contextType}
-                  onChange={(event) => setContextType(event.target.value as 'Nip' | 'InternalId' | 'NipVatUe' | 'PeppolId')}
+                  onChange={(event) =>
+                    setContextType(
+                      event.target.value as
+                        | "Nip"
+                        | "InternalId"
+                        | "NipVatUe"
+                        | "PeppolId",
+                    )
+                  }
                 >
                   <option value="Nip">NIP</option>
                   <option value="InternalId">InternalId</option>
@@ -211,7 +259,15 @@ function App() {
                 <span>Rola w wyszukiwaniu</span>
                 <select
                   value={subjectType}
-                  onChange={(event) => setSubjectType(event.target.value as 'Subject1' | 'Subject2' | 'Subject3' | 'SubjectAuthorized')}
+                  onChange={(event) =>
+                    setSubjectType(
+                      event.target.value as
+                        | "Subject1"
+                        | "Subject2"
+                        | "Subject3"
+                        | "SubjectAuthorized",
+                    )
+                  }
                 >
                   <option value="Subject1">Podmiot 1 / sprzedawca</option>
                   <option value="Subject2">Podmiot 2 / nabywca</option>
@@ -224,7 +280,14 @@ function App() {
                 <span>Typ daty</span>
                 <select
                   value={dateType}
-                  onChange={(event) => setDateType(event.target.value as 'Issue' | 'Invoicing' | 'PermanentStorage')}
+                  onChange={(event) =>
+                    setDateType(
+                      event.target.value as
+                        | "Issue"
+                        | "Invoicing"
+                        | "PermanentStorage",
+                    )
+                  }
                 >
                   <option value="Invoicing">Przyjęcie w KSeF</option>
                   <option value="Issue">Data wystawienia</option>
@@ -235,7 +298,10 @@ function App() {
 
             <label>
               <span>Okres (miesiąc)</span>
-              <select value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>
+              <select
+                value={selectedMonth}
+                onChange={(event) => setSelectedMonth(event.target.value)}
+              >
                 {monthLabels.map((month) => (
                   <option key={month.label} value={month.label}>
                     {month.label}
@@ -244,18 +310,22 @@ function App() {
               </select>
             </label>
 
-            <div className="format-switcher" role="radiogroup" aria-label="Format eksportu">
+            <div
+              className="format-switcher"
+              role="radiogroup"
+              aria-label="Format eksportu"
+            >
               <button
-                className={format === 'xml' ? 'is-active' : ''}
+                className={format === "xml" ? "is-active" : ""}
                 type="button"
-                onClick={() => setFormat('xml')}
+                onClick={() => setFormat("xml")}
               >
                 XML ZIP
               </button>
               <button
-                className={format === 'pdf' ? 'is-active' : ''}
+                className={format === "pdf" ? "is-active" : ""}
                 type="button"
-                onClick={() => setFormat('pdf')}
+                onClick={() => setFormat("pdf")}
               >
                 PDF ZIP
               </button>
@@ -271,13 +341,26 @@ function App() {
               />
             </label>
 
-            <button className="primary-button" type="submit" disabled={busy}>
-              {busy ? 'Pobieranie…' : 'Pobierz paczkę'}
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={isPending}
+            >
+              {isPending ? "Pobieranie…" : "Pobierz paczkę"}
             </button>
           </form>
 
-          {message ? <p className="status success">{message}</p> : null}
-          {error ? <p className="status error">{error}</p> : null}
+          {isSuccess ? (
+            <p className="status success">
+              ✓ Paczka została pobrana. Dane nigdy nie opuszczają Twojej
+              przeglądarki.
+            </p>
+          ) : null}
+          {isError ? (
+            <p className="status error">
+              {downloadError?.message ?? "Wystąpił nieznany błąd."}
+            </p>
+          ) : null}
         </section>
 
         <aside className="stacked-panels">
@@ -287,24 +370,32 @@ function App() {
               <li>Wszystkie operacje odbywają się w Twojej przeglądarce.</li>
               <li>Token nigdy nie jest wysyłany na zewnętrzne serwery.</li>
               <li>XML pobierany jest bezpośrednio z API KSeF.</li>
-              <li>Paczka jest tworzona lokalnie i pobierana na Twój komputer.</li>
+              <li>
+                Paczka jest tworzona lokalnie i pobierana na Twój komputer.
+              </li>
             </ol>
           </section>
 
           <section className="panel">
             <h2>Prywatność przede wszystkim</h2>
             <p>
-              Narzędzie działa z technologią Edge Computing. Kod przesyłający Twoje dane jest publiczny, nie posiada połączenia z bazą danych i fizycznie nie ma miejsca, w którym mógłby zapisać Twój token. 
+              Narzędzie działa z technologią Edge Computing. Kod przesyłający
+              Twoje dane jest publiczny, nie posiada połączenia z bazą danych i
+              fizycznie nie ma miejsca, w którym mógłby zapisać Twój token.
             </p>
             <p>
-              <strong>Każde zapytanie jest izolowane i niszczone natychmiast po wysłaniu faktury do Twojej przeglądarki.</strong>
+              <strong>
+                Każde zapytanie jest izolowane i niszczone natychmiast po
+                wysłaniu faktury do Twojej przeglądarki.
+              </strong>
             </p>
           </section>
 
           <section className="panel accent-panel">
             <h2>Kup nam kawę</h2>
             <p>
-              Sekcja jest gotowa pod podpięcie docelowego linku wsparcia. Na tym etapie zostawiliśmy ją celowo prostą.
+              Sekcja jest gotowa pod podpięcie docelowego linku wsparcia. Na tym
+              etapie zostawiliśmy ją celowo prostą.
             </p>
           </section>
         </aside>
