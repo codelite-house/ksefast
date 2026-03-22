@@ -9,12 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@mdab25/ksef-pdf": "^0.1.2",
+    "@akmf/ksef-fe-invoice-converter": "github:CIRFMF/ksef-pdf-generator",
     "@tanstack/react-query": "^5.94.5",
     "jsrsasign": "^11.1.0",
     "jszip": "^3.10.1",
+    "pdfmake": "^0.2.23",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "xml-js": "^1.6.11"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

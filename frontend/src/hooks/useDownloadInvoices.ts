@@ -33,9 +33,11 @@ async function pollUntilAuthorized(
         ? ` (${result.status.details.join(", ")})`
         : "";
       const detailsText = result.status.details?.join(" ").toLowerCase() ?? "";
-      const tokenHint = detailsText.includes("token") && detailsText.includes("nie został znaleziony")
-        ? " Sprawdź, czy używasz tokena z właściwego środowiska (demo/prod) i czy token jest nadal aktywny."
-        : "";
+      const tokenHint =
+        detailsText.includes("token") &&
+        detailsText.includes("nie został znaleziony")
+          ? " Sprawdź, czy używasz tokena z właściwego środowiska (demo/prod) i czy token jest nadal aktywny."
+          : "";
       throw new Error(
         `KSeF authentication failed: ${result.status.description}${details}${tokenHint}`,
       );
