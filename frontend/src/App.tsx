@@ -1,5 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-
+import { FormEvent, useEffect, useState } from "react";
 import { useDownloadInvoices } from "./hooks/useDownloadInvoices";
 import type { DownloadInvoicesRequest } from "./types";
 
@@ -44,6 +43,7 @@ const monthLabels = generateMonthLabels();
 const defaultMonth = monthLabels[1]; // Poprzedni miesiąc
 
 function App() {
+  const [showQA, setShowQA] = useState(false);
   const [token, setToken] = useState("");
   const [email, setEmail] = useState("");
   const [contextType, setContextType] = useState<
@@ -59,7 +59,6 @@ function App() {
   >("Invoicing");
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth.label);
   const [format, setFormat] = useState<"xml" | "pdf">("xml");
-  const [sessionActive, setSessionActive] = useState(false);
 
   const {
     mutate: downloadInvoices,
@@ -70,13 +69,6 @@ function App() {
     reset: resetDownload,
   } = useDownloadInvoices();
 
-  const helperText = useMemo(() => {
-    if (format === "pdf") {
-      return "PDF powstaje lokalnie w Twojej przeglądarce z XML pobranego z KSeF.";
-    }
-
-    return "XML trafia do paczki ZIP pobieranej lokalnie w Twojej przeglądarce z KSeF.";
-  }, [format]);
 
   const selectedMonthData =
     monthLabels.find((m) => m.label === selectedMonth) || defaultMonth;
@@ -91,7 +83,7 @@ function App() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSessionActive(true);
+
 
     const request: DownloadInvoicesRequest = {
       environment,
@@ -120,79 +112,26 @@ function App() {
     });
   }
 
-  function handleClearSession() {
-    setToken("");
-    setEmail("");
-    setContextValue("");
-    setSessionActive(false);
-    resetDownload();
-    sessionStorage.clear();
-    localStorage.clear();
-  }
 
   return (
     <div className="page-shell">
-      <div className="privacy-banner">
-        <div className="privacy-content">
-          <strong>🔒 Twoje dane są bezpieczne, bo ich nie zbieramy.</strong>
-          <p>
-            Narzędzie działa lokalnie w Twojej przeglądarce. Nie mamy bazy
-            danych, nie przechowujemy Twoich haseł, nie widzimy Twoich faktur.
-            Po odświeżeniu strony wszystkie dane znikają.
-          </p>
-          {sessionActive && (
-            <div className="session-indicator">
-              <span className="indicator-dot"></span>
-              Sesja aktywna lokalnie
-              <button
-                type="button"
-                className="clear-session-btn"
-                onClick={handleClearSession}
-              >
-                Wyczyść wszystko
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <header className="hero">
-        <div className="hero-copy">
-          <span className="eyebrow">KSeFast MVP</span>
-          <h1>Pobierz paczkę faktur z KSeF jako XML albo PDF.</h1>
-          <p>
-            Wprowadź token KSeF, wskaż kontekst logowania i zakres dat, a
-            aplikacja pobierze faktury do jednego archiwum ZIP.
-          </p>
-          <ul className="hero-list">
-            <li>
-              token trzymany wyłącznie w Twojej przeglądarce podczas sesji,
-            </li>
-            <li>prosty eksport XML lub PDF,</li>
-            <li>bez przesyłania danych na zewnętrzne serwery,</li>
-            <li>bezpośrednia komunikacja z API KSeF.</li>
-          </ul>
-        </div>
-        <div className="hero-card">
-          <strong>Ważne</strong>
-          <p>
-            KSeF wymaga nie tylko tokena, ale też identyfikatora kontekstu
-            logowania, np. NIP-u firmy.
-          </p>
-          <p>
-            Ten MVP działa najlepiej dla wąskich zakresów dat. Jedna paczka
-            obsługuje maksymalnie 50 faktur.
-          </p>
+      <header className="hero minimal-hero">
+        <div className="hero-row">
+          <span className="eyebrow">KSeFast</span>
+          <h1>Pobierz faktury z KSeF</h1>
+          <button
+            className="qa-toggle-btn icon-btn"
+            type="button"
+            aria-label={showQA ? "Ukryj Q&A" : "Pokaż Q&A"}
+            onClick={() => setShowQA((v) => !v)}
+          >
+            <span aria-hidden="true">?</span>
+          </button>
         </div>
       </header>
 
-      <main className="content-grid">
+      <main className="main-grid">
         <section className="panel form-panel">
-          <div className="panel-heading">
-            <h2>Pobierz faktury</h2>
-            <p>{helperText}</p>
-          </div>
-
           <form className="download-form" onSubmit={handleSubmit}>
             <label>
               <span>Środowisko</span>
@@ -214,7 +153,6 @@ function App() {
                 value={token}
                 onChange={(event) => {
                   setToken(event.target.value);
-                  setSessionActive(event.target.value.length > 0);
                 }}
                 placeholder="Wklej token KSeF"
                 required
@@ -242,7 +180,6 @@ function App() {
                   <option value="PeppolId">Peppol ID</option>
                 </select>
               </label>
-
               <label>
                 <span>Wartość kontekstu</span>
                 <input
@@ -275,7 +212,6 @@ function App() {
                   <option value="SubjectAuthorized">Podmiot upoważniony</option>
                 </select>
               </label>
-
               <label>
                 <span>Typ daty</span>
                 <select
@@ -363,40 +299,38 @@ function App() {
           ) : null}
         </section>
 
-        <aside className="stacked-panels">
-          <section className="panel">
-            <h2>Jak to działa</h2>
-            <ol className="steps">
-              <li>Wszystkie operacje odbywają się w Twojej przeglądarce.</li>
-              <li>Token nigdy nie jest wysyłany na zewnętrzne serwery.</li>
-              <li>XML pobierany jest bezpośrednio z API KSeF.</li>
-              <li>
-                Paczka jest tworzona lokalnie i pobierana na Twój komputer.
-              </li>
-            </ol>
-          </section>
-
-          <section className="panel">
-            <h2>Prywatność przede wszystkim</h2>
-            <p>
-              Narzędzie działa z technologią Edge Computing. Kod przesyłający
-              Twoje dane jest publiczny, nie posiada połączenia z bazą danych i
-              fizycznie nie ma miejsca, w którym mógłby zapisać Twój token.
-            </p>
-            <p>
-              <strong>
-                Każde zapytanie jest izolowane i niszczone natychmiast po
-                wysłaniu faktury do Twojej przeglądarki.
-              </strong>
-            </p>
-          </section>
-
-          <section className="panel accent-panel">
-            <h2>Kup nam kawę</h2>
-            <p>
-              Sekcja jest gotowa pod podpięcie docelowego linku wsparcia. Na tym
-              etapie zostawiliśmy ją celowo prostą.
-            </p>
+        <aside className={`qa-aside${showQA ? ' show' : ''}`}>
+          <section className="qa-section">
+            <h2>Q&A / Instrukcje</h2>
+            <div className="panel">
+              <h3>Jak to działa?</h3>
+              <ol className="steps">
+                <li>Wszystkie operacje odbywają się w Twojej przeglądarce.</li>
+                <li>Token nigdy nie jest wysyłany na zewnętrzne serwery.</li>
+                <li>XML pobierany jest bezpośrednio z API KSeF.</li>
+                <li>Paczka jest tworzona lokalnie i pobierana na Twój komputer.</li>
+              </ol>
+            </div>
+            <div className="panel">
+              <h3>Prywatność przede wszystkim</h3>
+              <p>Narzędzie działa z technologią Edge Computing. Kod przesyłający Twoje dane jest publiczny, nie posiada połączenia z bazą danych i fizycznie nie ma miejsca, w którym mógłby zapisać Twój token.</p>
+              <p><strong>Każde zapytanie jest izolowane i niszczone natychmiast po wysłaniu faktury do Twojej przeglądarki.</strong></p>
+            </div>
+            <div className="panel accent-panel">
+              <h3>Kup nam kawę</h3>
+              <p>Sekcja jest gotowa pod podpięcie docelowego linku wsparcia. Na tym etapie zostawiliśmy ją celowo prostą.</p>
+            </div>
+            <div className="panel">
+              <h3>FAQ</h3>
+              <ul>
+                <li>Token trzymany wyłącznie w Twojej przeglądarce podczas sesji.</li>
+                <li>Prosty eksport XML lub PDF.</li>
+                <li>Bez przesyłania danych na zewnętrzne serwery.</li>
+                <li>Bezpośrednia komunikacja z API KSeF.</li>
+                <li>Jedna paczka obsługuje maksymalnie 50 faktur.</li>
+                <li>KSeF wymaga nie tylko tokena, ale też identyfikatora kontekstu logowania, np. NIP-u firmy.</li>
+              </ul>
+            </div>
           </section>
         </aside>
       </main>
