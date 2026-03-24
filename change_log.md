@@ -1,3 +1,11 @@
+# 2026-03-24
+
+### QR KSeF 2.0 – oficjalny format linku
+
+- buildKsefQrUrl generuje link QR zgodny z oficjalnym formatem KSeF 2.0: https://qr.ksef.mf.gov.pl/invoice/{NIP}/{DD-MM-YYYY}/{hash}.
+- W archiveService.ts przekazywany jest NIP sprzedawcy oraz data wystawienia z metadanych faktury.
+- Usunięto stare formaty linków QR, niezgodne z aktualną specyfikacją.
+- QR w PDF jest teraz w pełni akceptowany przez KSeF.
 # Change log
 
 ## 2026-03-24

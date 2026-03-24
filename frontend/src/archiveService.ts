@@ -1,10 +1,10 @@
+import { buildKsefQrUrl } from "./lib/buildKsefQrUrl";
 import JSZip from "jszip";
 import { generateInvoice } from "@akmf/ksef-fe-invoice-converter";
 
 import type {
   DownloadFormat,
   DownloadedInvoice,
-  EnvironmentName,
 } from "./types";
 
 function sanitizeFilePart(value: string): string {
@@ -25,15 +25,10 @@ function buildInvoiceFileName(
   return `${invoiceNumber}__${ksefNumber}.${extension}`;
 }
 
-const KSEF_BASE_URLS: Record<EnvironmentName, string> = {
-  demo: "https://ksef-test.mf.gov.pl/invoice",
-  prod: "https://ksef.mf.gov.pl/invoice",
-};
 
 export async function buildArchive(
   invoices: DownloadedInvoice[],
   format: DownloadFormat,
-  environment: EnvironmentName,
 ): Promise<Blob> {
   const zip = new JSZip();
 
@@ -48,7 +43,12 @@ export async function buildArchive(
       `${invoice.metadata.ksefNumber}.xml`,
       { type: "text/xml" },
     );
-    const qrCode = `${KSEF_BASE_URLS[environment]}/${invoice.metadata.ksefNumber}`;
+    // QR code: oficjalny format KSeF (hash SHA-256 z XML, base64url)
+    const qrCode = await buildKsefQrUrl(
+      invoice.xml,
+      invoice.metadata.seller.nip || "",
+      invoice.metadata.issueDate
+    );
     const pdf = await generateInvoice(
       xmlFile,
       { nrKSeF: invoice.metadata.ksefNumber, qrCode },
