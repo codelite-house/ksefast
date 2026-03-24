@@ -4,12 +4,12 @@
   "version": "0.1.0",
   "workspaces": [
     "frontend",
-    "backend"
+    "server"
   ],
   "scripts": {
-    "dev": "concurrently -n api,web -c magenta,cyan \"npm --workspace backend run dev\" \"npm --workspace frontend run dev\"",
-    "build": "npm run build --workspace backend && npm run build --workspace frontend",
-    "start": "npm --workspace backend run start",
+    "dev": "concurrently -n api,web -c magenta,cyan \"pnpm --filter ksefast-proxy run dev\" \"pnpm --filter ksefast-frontend run dev\"",
+    "build": "pnpm --filter ksefast-frontend run build",
+    "start": "pnpm --filter ksefast-proxy run start",
     "deploy": "vercel"
   },
   "devDependencies": {

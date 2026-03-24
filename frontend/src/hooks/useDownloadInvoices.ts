@@ -167,7 +167,7 @@ export function useDownloadInvoices() {
       }
 
       // 9. Budowanie archiwum ZIP
-      const blob = await buildArchive(downloaded, request.format);
+      const blob = await buildArchive(downloaded, request.format, environment);
       const today = new Date().toISOString().slice(0, 10);
 
       return {

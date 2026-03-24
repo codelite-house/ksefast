@@ -1,40 +1,64 @@
-import JSZip from 'jszip';
-import { renderPdfFromXml } from '@mdab25/ksef-pdf';
+import JSZip from "jszip";
+import { generateInvoice } from "@akmf/ksef-fe-invoice-converter";
 
-import type { DownloadFormat, DownloadedInvoice } from './types';
+import type {
+  DownloadFormat,
+  DownloadedInvoice,
+  EnvironmentName,
+} from "./types";
 
 function sanitizeFilePart(value: string): string {
   return value
-    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '-')
-    .replace(/\s+/g, '_')
+    .replace(/[<>:"/\\|?*\u0000-\u001F]/g, "-")
+    .replace(/\s+/g, "_")
     .slice(0, 80);
 }
 
-function buildInvoiceFileName(invoice: DownloadedInvoice, extension: string): string {
-  const invoiceNumber = sanitizeFilePart(invoice.metadata.invoiceNumber || invoice.metadata.ksefNumber);
+function buildInvoiceFileName(
+  invoice: DownloadedInvoice,
+  extension: string,
+): string {
+  const invoiceNumber = sanitizeFilePart(
+    invoice.metadata.invoiceNumber || invoice.metadata.ksefNumber,
+  );
   const ksefNumber = sanitizeFilePart(invoice.metadata.ksefNumber);
   return `${invoiceNumber}__${ksefNumber}.${extension}`;
 }
 
+const KSEF_BASE_URLS: Record<EnvironmentName, string> = {
+  demo: "https://ksef-test.mf.gov.pl/invoice",
+  prod: "https://ksef.mf.gov.pl/invoice",
+};
+
 export async function buildArchive(
   invoices: DownloadedInvoice[],
   format: DownloadFormat,
+  environment: EnvironmentName,
 ): Promise<Blob> {
   const zip = new JSZip();
 
   for (const invoice of invoices) {
-    if (format === 'xml') {
-      zip.file(buildInvoiceFileName(invoice, 'xml'), invoice.xml);
+    if (format === "xml") {
+      zip.file(buildInvoiceFileName(invoice, "xml"), invoice.xml);
       continue;
     }
 
-    const pdf = await renderPdfFromXml(invoice.xml);
-    const pdfData = pdf instanceof Uint8Array ? pdf : new Uint8Array(pdf);
-    zip.file(buildInvoiceFileName(invoice, 'pdf'), pdfData);
+    const xmlFile = new File(
+      [invoice.xml],
+      `${invoice.metadata.ksefNumber}.xml`,
+      { type: "text/xml" },
+    );
+    const qrCode = `${KSEF_BASE_URLS[environment]}/${invoice.metadata.ksefNumber}`;
+    const pdf = await generateInvoice(
+      xmlFile,
+      { nrKSeF: invoice.metadata.ksefNumber, qrCode },
+      "blob",
+    );
+    zip.file(buildInvoiceFileName(invoice, "pdf"), await pdf.arrayBuffer());
   }
 
   zip.file(
-    'manifest.json',
+    "manifest.json",
     JSON.stringify(
       {
         generatedAt: new Date().toISOString(),
@@ -55,5 +79,5 @@ export async function buildArchive(
     ),
   );
 
-  return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+  return zip.generateAsync({ type: "blob", compression: "DEFLATE" });
 }

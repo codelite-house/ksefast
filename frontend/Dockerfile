@@ -8,6 +8,9 @@ COPY tsconfig.node.json ./tsconfig.node.json
 COPY vite.config.ts ./vite.config.ts
 COPY index.html ./index.html
 COPY src ./src
+COPY vendor/ksef-pdf-generator/src ./vendor/ksef-pdf-generator/src
+COPY vendor/ksef-pdf-generator/assets ./vendor/ksef-pdf-generator/assets
+COPY vendor/ksef-pdf-generator/index.d.ts ./vendor/ksef-pdf-generator/index.d.ts
 
 RUN npm install
 RUN npm run build

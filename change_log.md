@@ -1,5 +1,20 @@
 # Change log
 
+## 2026-03-24
+
+### Migracja @akmf/ksef-fe-invoice-converter na git submodule
+
+- dodano git submodule `frontend/vendor/ksef-pdf-generator` (https://github.com/CIRFMF/ksef-pdf-generator, licencja MIT)
+- zmieniono `frontend/package.json`: zależność z `github:CIRFMF/ksef-pdf-generator` na `file:./vendor/ksef-pdf-generator`
+- naprawiono `frontend/vendor/ksef-pdf-generator/package.json`: pola `main`/`module`/`types`/`exports` wskazywały na pliki w root, podczas gdy `vite build` generuje je do `dist/` — poprawiono na `./dist/...`
+- naprawiono `frontend/src/archiveService.ts`: import z nieistniejącego `@mdab25/ksef-pdf` → `@akmf/ksef-fe-invoice-converter`; nieistniejąca funkcja `renderPdfFromXml` → `generateInvoice(File, { nrKSeF }, 'blob')` z prawidłową sygnaturą
+- zaktualizowano `frontend/Dockerfile`: usunięto `apk add git`; dodano etap budowania vendora (`npm ci --include=dev && npm run build`) przed budowaniem głównej aplikacji
+
+### Naprawa Docker build frontendu: brak `git` w alpine
+
+- dodano `RUN apk add --no-cache git` w `frontend/Dockerfile` przed `npm install`
+- zależność `@akmf/ksef-fe-invoice-converter` jest instalowana z GitHuba (`github:CIRFMF/ksef-pdf-generator`), co wymaga obecności `git` w obrazie budującym
+
 ## 2026-03-22
 
 ### Usprawnienie diagnostyki błędów tokena KSeF
