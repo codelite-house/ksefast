@@ -1,3 +1,33 @@
+# 2026-03-27
+
+# 2026-03-27
+
+# 2026-03-27
+
+### Refactoring App.tsx — podział na komponenty
+
+- Wyodrębniono `src/theme.ts` — definicja MUI `createTheme`.
+- Wyodrębniono `src/lib/monthLabels.ts` — `generateMonthLabels`, `MonthOption`, stałe `monthLabels` / `defaultMonth`.
+- Dodano `src/components/AppHeader.tsx` — nagłówek z Chip i tytułem.
+- Dodano `src/components/DownloadForm.tsx` — cały formularz pobierania z lokalnym stanem i `useDownloadInvoices`.
+- Dodano `src/components/QAPanel.tsx` — panel Q&A z prywatnymi panelami i FAQ; wewnętrzny `ListPanel` eliminuje powtorzenia.
+- Dodano `src/components/AppFooter.tsx` — stopka z linkami GitHub.
+- `App.tsx` skrócony z ~530 do 38 linii — zawiera tylko `ThemeProvider` + layout grid.
+
+### Migracja UI na MUI (Material UI)
+
+- Zainstalowano `@mui/material`, `@emotion/react`, `@emotion/styled`.
+- Przepisano `App.tsx` w całości — wszystkie elementy HTML + ręczny CSS zastąpione komponentami MUI (`TextField`, `Select`, `MenuItem`, `Button`, `ToggleButtonGroup`, `Alert`, `Paper`, `Stack`, `Typography`, `Chip`, `Container`, `Link`).
+- Zdefiniowano dark theme (`createTheme`) z kolorami `primary: #38bdf8`, `secondary: #22c55e` i gradientowym tłem przez `MuiCssBaseline` override.
+- `styles.css` wyczyszczony do komentarza — MUI `ThemeProvider` + `CssBaseline` przejmuje całe stylowanie.
+
+### UI: stopka, GitHub link, Q&A zawsze widoczne, README
+
+- Dodano stopkę (`site-footer`) z linkiem do GitHub (`codelitehouse/ksefast`) i do biblioteki PDF (`CIRFMF/ksef-pdf-generator`).
+- Usunięto przycisk toggle `?` z nagłówka – panel Q&A jest teraz zawsze widoczny.
+- Usunięto stan `showQA` oraz style `.qa-toggle-btn` i `.qa-aside:not(.show)` z CSS.
+- Zaktualizowano `README.md`: dodano badge GitHub, poprawiono referencję do biblioteki PDF (zamiast `@mdab25/ksef-pdf` → link do `CIRFMF/ksef-pdf-generator` z adnotacją że jest vendorowana z oficjalnego repo MF).
+
 # 2026-03-24
 
 ### QR KSeF 2.0 – oficjalny format linku
@@ -6,6 +36,7 @@
 - W archiveService.ts przekazywany jest NIP sprzedawcy oraz data wystawienia z metadanych faktury.
 - Usunięto stare formaty linków QR, niezgodne z aktualną specyfikacją.
 - QR w PDF jest teraz w pełni akceptowany przez KSeF.
+
 # Change log
 
 ## 2026-03-24

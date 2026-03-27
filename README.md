@@ -1,5 +1,7 @@
 # KSeFast
 
+[![GitHub](https://img.shields.io/badge/GitHub-codelitehouse%2Fksefast-blue?logo=github)](https://github.com/codelitehouse/ksefast)
+
 Prosty MVP do pobierania paczek faktur z KSeF **bez przechowywania danych**.
 
 ## Co robi
@@ -14,7 +16,7 @@ Prosty MVP do pobierania paczek faktur z KSeF **bez przechowywania danych**.
 
 - **Frontend**: React + Vite + TypeScript (przetwarzanie szyfrowania RSA i budowanie PDF)
 - **Edge Functions**: Vercel Edge (pass-through proxy do KSeF, bez przechowywania danych)
-- **PDF**: `@mdab25/ksef-pdf` (działa w przeglądarce)
+- **PDF**: [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) – generowanie wizualizacji PDF faktur lokalnie w przeglądarce (vendored lokalnie z oficjalnego repozytorium MF)
 - **Crypto**: jsrsasign (RSA-OAEP szyfrowanie tokena w przeglądarce)
 
 ## Architektura Privacy-First
@@ -28,6 +30,7 @@ Prosty MVP do pobierania paczek faktur z KSeF **bez przechowywania danych**.
    - Pobieranie XML faktur
 
 **Nie przechodzi przez Edge Functions (robi się lokalnie)**:
+
 - Szyfrowanie tokena RSA-OAEP
 - Budowanie plików PDF
 - Tworzenie archiwów ZIP
@@ -42,11 +45,13 @@ Prosty MVP do pobierania paczek faktur z KSeF **bez przechowywania danych**.
 ## Uruchomienie lokalnie (dev mode)
 
 1. Zainstaluj zależności:
+
    ```bash
    npm install
    ```
 
 2. Uruchom development:
+
    ```bash
    npm run dev
    ```
@@ -58,6 +63,7 @@ Prosty MVP do pobierania paczek faktur z KSeF **bez przechowywania danych**.
 ## Build i Deploy na Vercel
 
 1. Build
+
    ```bash
    npm run build
    ```
@@ -68,6 +74,7 @@ Prosty MVP do pobierania paczek faktur z KSeF **bez przechowywania danych**.
    ```
 
 Vercel automatycznie:
+
 - Buduje frontend do `frontend/dist`
 - Domontuje Edge Functions z folderu `api/`
 - Ustawia CORS headers na wszystkie odpowiedzi
@@ -75,9 +82,11 @@ Vercel automatycznie:
 ## Konfiguracja
 
 ### Frontend
+
 - `VITE_API_BASE_URL` - opcjonalnie, domyślnie `/api` (Vercel) lub `http://localhost:3001` (dev)
 
 ### Backend (lokalnie)
+
 - `PORT=3001`
 
 ## Endpointy Edge Functions
@@ -93,4 +102,3 @@ Vercel automatycznie:
 ## Status
 
 MVP jest przygotowany jako production-ready starter pod dalsze rozwijanie. Architektura Edge Functions + Client-Side Processing jest bezkonkurencyjna pod względem prywatności w kategoriach SaaS-ów.
-
