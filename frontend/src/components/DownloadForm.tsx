@@ -15,7 +15,6 @@ import Typography from "@mui/material/Typography";
 
 export default function DownloadForm() {
   const [token, setToken] = useState("");
-  const [email, setEmail] = useState("");
   const [contextType, setContextType] = useState<
     "Nip" | "InternalId" | "NipVatUe" | "PeppolId"
   >("Nip");
@@ -62,7 +61,6 @@ export default function DownloadForm() {
       dateFrom: selectedMonthData.dateFrom,
       dateTo: selectedMonthData.dateTo,
       format,
-      email: email.trim() || undefined,
     };
 
     downloadInvoices(request, {
@@ -219,15 +217,6 @@ export default function DownloadForm() {
             <ToggleButton value="pdf">PDF ZIP</ToggleButton>
           </ToggleButtonGroup>
         </Box>
-
-        <TextField
-          label="E-mail opcjonalny"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="twoj@email.pl"
-          fullWidth
-        />
 
         <Button
           type="submit"

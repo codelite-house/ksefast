@@ -84,23 +84,6 @@ export default function QAPanel() {
         </Typography>
       </Paper>
 
-      {/* TODO: odkomentować gdy będzie gotowy link wsparcia */}
-      {/* <Paper
-        sx={{
-          p: 3,
-          background:
-            "linear-gradient(180deg, rgba(34,197,94,0.12) 0%, transparent 100%)",
-        }}
-      >
-        <Typography variant="subtitle2" color="secondary" gutterBottom>
-          Kup nam kawę
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Sekcja jest gotowa pod podpięcie docelowego linku wsparcia. Na tym
-          etapie zostawiliśmy ją celowo prostą.
-        </Typography>
-      </Paper> */}
-
       <ListPanel title="FAQ" items={faqItems} />
     </Stack>
   );

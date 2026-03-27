@@ -29,7 +29,6 @@ export interface DownloadInvoicesRequest {
   dateFrom: string;
   dateTo: string;
   format: DownloadFormat;
-  email?: string;
 }
 
 // Odpowiada schematowi PublicKeyCertificate z OpenAPI spec KSeF v2 (/security/public-key-certificates)

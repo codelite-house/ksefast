@@ -1,5 +1,11 @@
 # 2026-03-27
 
+### Usunięcie nieużywanego pola email
+
+- Usunięto `email?: string` z interfejsu `DownloadInvoicesRequest` w `types.ts`.
+- Usunięto stan `email`, przekazanie do request i pole TextField z `DownloadForm.tsx`.
+- Pole nigdy nie było używane przez żaden endpoint KSeF API v2.
+
 # 2026-03-27
 
 # 2026-03-27
