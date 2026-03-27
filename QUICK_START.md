@@ -248,4 +248,4 @@ npm install
 npm run dev
 ```
 
-Powodzenia!!
+Powodzenia!
