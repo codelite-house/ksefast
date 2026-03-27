@@ -98,7 +98,3 @@ Vercel automatycznie:
 - `POST /api/auth/redeem?environment=demo|prod` - wymień authToken na accessToken
 - `POST /api/invoices/metadata?environment=demo|prod&pageOffset=0&pageSize=50` - zapytaj o metadane faktur
 - `GET /api/invoices/download?environment=demo|prod&ksefNumber=...` - pobierz XML faktury
-
-## Status
-
-MVP jest przygotowany jako production-ready starter pod dalsze rozwijanie. Architektura Edge Functions + Client-Side Processing jest bezkonkurencyjna pod względem prywatności w kategoriach SaaS-ów.
