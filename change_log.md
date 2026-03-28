@@ -1,5 +1,14 @@
 # 2026-03-28
 
+### UX: info o PDF, poprawki QAPanel, nowe README, usunięcie deploy.yml
+
+- `frontend/src/components/DownloadForm.tsx`: dodano podpis pod przełącznikiem „PDF ZIP" informujący, że KSeF nie dostarcza faktur w PDF i że konwersja XML→PDF odbywa się lokalnie w przeglądarce.
+- `frontend/src/components/QAPanel.tsx`: przepisano sekcję „Jak to działa?" – 5 kroków opisujących faktyczny przebieg (szyfrowanie lokalne, proxy CORS, XML z KSeF, generowanie PDF, ZIP lokalnie); przepisano FAQ – pytania z odpowiedziami zamiast ogólnych punktorów; zaktualizowano panel prywatności (usunięto nieprecyzyjne odwołanie do „Edge Computing").
+- `README.md`: przepisano pod kątem końcowego użytkownika – Docker Compose jako jedyna metoda uruchomienia lokalnego, usunięto instrukcje Vercel/dev/CLI, uproszczono opis architektury.
+- `.github/workflows/deploy.yml`: usunięto – Vercel auto-deployuje bezpośrednio z GitHub, ręczny workflow był redundantny.
+
+# 2026-03-28
+
 ### Walidacja wartości kontekstu + lepsze komunikaty błędów
 
 - `api/_helpers.ts`: dodano klasę `KsefUpstreamError` z polem `ksefBody` (oryginalne ciało odpowiedzi KSeF); `assertOk()` teraz ją rzuca zamiast `Error`; `handleError()` dołącza `ksefDetails` do odpowiedzi 400.

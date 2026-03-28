@@ -187,7 +187,10 @@ export default function DownloadForm() {
           <TextField
             label="Wartość kontekstu"
             value={contextValue}
-            onChange={(e) => setContextValue(e.target.value)}
+            onChange={(e) => {
+              setContextValue(e.target.value);
+              setContextValueTouched(true);
+            }}
             onBlur={() => setContextValueTouched(true)}
             placeholder={contextMeta.placeholder}
             helperText={contextValueError ?? contextMeta.helperText}
@@ -270,6 +273,17 @@ export default function DownloadForm() {
             <ToggleButton value="xml">XML ZIP</ToggleButton>
             <ToggleButton value="pdf">PDF ZIP</ToggleButton>
           </ToggleButtonGroup>
+          {format === "pdf" && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ mt: 1, display: "block" }}
+            >
+              KSeF nie dostarcza faktur w formacie PDF. Faktury XML są pobierane
+              z KSeF, a następnie konwertowane do PDF lokalnie w Twojej
+              przeglądarce.
+            </Typography>
+          )}
         </Box>
 
         <Button

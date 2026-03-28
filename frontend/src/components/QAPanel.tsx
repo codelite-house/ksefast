@@ -4,19 +4,20 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 
 const howItWorksItems = [
-  "Wszystkie operacje odbywają się w Twojej przeglądarce.",
-  "Token nigdy nie jest wysyłany na zewnętrzne serwery.",
-  "XML pobierany jest bezpośrednio z API KSeF.",
-  "Paczka jest tworzona lokalnie i pobierana na Twój komputer.",
+  "Przeglądarka szyfruje token RSA-OAEP lokalnie przy użyciu klucza publicznego KSeF – token nigdy nie opuszcza Twojego urządzenia w postaci jawnego tekstu.",
+  "Zaszyfrowane dane trafiają do KSeF przez serwer proxy (API KSeF blokuje bezpośrednie żądania z przeglądarki ze względu na CORS).",
+  "Faktury XML pobierane są z KSeF przez proxy i przekazywane bezpośrednio do przeglądarki – serwer ich nie zapisuje.",
+  "Jeśli wybrano PDF: każda faktura XML jest konwertowana do PDF lokalnie w przeglądarce – KSeF nie dostarcza faktur w formacie PDF.",
+  "Paczka ZIP jest tworzona lokalnie i pobierana bezpośrednio na Twój komputer.",
 ];
 
 const faqItems = [
-  "Token trzymany wyłącznie w Twojej przeglądarce podczas sesji.",
-  "Prosty eksport XML lub PDF.",
-  "Bez przesyłania danych na zewnętrzne serwery.",
-  "Bezpośrednia komunikacja z API KSeF.",
-  "Jedna paczka obsługuje maksymalnie 50 faktur.",
-  "KSeF wymaga nie tylko tokena, ale też identyfikatora kontekstu logowania, np. NIP-u firmy.",
+  "Czy mój token jest bezpieczny? Tak – szyfrowanie RSA-OAEP odbywa się lokalnie, token nigdy nie jest wysyłany w postaci jawnego tekstu.",
+  "Dlaczego potrzebny jest serwer proxy? API KSeF blokuje żądania bezpośrednio z przeglądarki (brak nagłówka CORS). Proxy tylko przekazuje żądania, nic nie zapisuje.",
+  "Skąd bierze się PDF? KSeF nie dostarcza faktur w PDF. Plik generowany jest lokalnie na podstawie XML faktury.",
+  "Co to jest kontekst logowania? KSeF wymaga podania nie tylko tokena, ale też identyfikatora firmy (np. NIP), w imieniu której się logujesz.",
+  "Ile faktur można pobrać na raz? Maksymalnie 50 faktur w jednej paczce.",
+  "Czy dane są gdzieś zapisywane? Nie. Każde zapytanie jest izolowane – serwer proxy jest bezstanowy i nie posiada bazy danych.",
 ];
 
 function ListPanel({
@@ -72,14 +73,14 @@ export default function QAPanel() {
           Prywatność przede wszystkim
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Narzędzie działa z technologią Edge Computing. Kod przesyłający Twoje
-          dane jest publiczny, nie posiada połączenia z bazą danych i fizycznie
-          nie ma miejsca, w którym mógłby zapisać Twój token.
+          Serwer proxy jest bezstanowy – nie posiada bazy danych i nie ma gdzie
+          zapisać Twojego tokena ani faktur. Kod jest publicznie dostępny na
+          GitHubie.
         </Typography>
         <Typography variant="body2" color="text.secondary" mt={1}>
           <strong>
-            Każde zapytanie jest izolowane i niszczone natychmiast po wysłaniu
-            faktury do Twojej przeglądarki.
+            Każde zapytanie jest izolowane i niszczone natychmiast po
+            przekazaniu odpowiedzi do przeglądarki.
           </strong>
         </Typography>
       </Paper>
