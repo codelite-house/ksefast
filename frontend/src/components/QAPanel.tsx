@@ -102,7 +102,35 @@ export default function QAPanel() {
           </strong>
         </Typography>
       </Paper>
-
+      <Paper sx={{ p: 3, display: "flex", flexDirection: "column", alignItems: "center", bgcolor: "background.paper" }}>
+        <Typography variant="subtitle2" color="secondary" gutterBottom>
+          Wesprzyj projekt
+        </Typography>
+        <a
+          href="https://buycoffee.to/codelitehouse"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-block",
+            borderRadius: 8,
+            overflow: "hidden",
+            boxShadow: "0 2px 8px 0 rgba(56,189,248,0.10)",
+            transition: "box-shadow 0.2s",
+            marginTop: 8,
+          }}
+        >
+          <img
+            src="https://buycoffee.to/static/img/share/share-button-dark.png"
+            alt="Postaw mi kawę na buycoffee.to"
+            style={{
+              width: 136,
+              height: 35,
+              display: "block",
+              filter: "brightness(0.95) saturate(1.1)",
+            }}
+          />
+        </a>
+      </Paper>
       <Paper sx={{ p: 3 }}>
         <Typography variant="subtitle2" color="secondary" gutterBottom>
           FAQ
