@@ -14,7 +14,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Container maxWidth="xl" sx={{ py: 6, px: { xs: 2, sm: 3 } }}>
+      <Container maxWidth="xl" sx={{ pt: 0, pb: 6, px: { xs: 2, sm: 3 } }}>
         <AppHeader />
 
         <Box
