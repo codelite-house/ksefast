@@ -12,12 +12,30 @@ const howItWorksItems = [
 ];
 
 const faqItems = [
-  "Czy mój token jest bezpieczny? Tak – szyfrowanie RSA-OAEP odbywa się lokalnie, token nigdy nie jest wysyłany w postaci jawnego tekstu.",
-  "Dlaczego potrzebny jest serwer proxy? API KSeF blokuje żądania bezpośrednio z przeglądarki (brak nagłówka CORS). Proxy tylko przekazuje żądania, nic nie zapisuje.",
-  "Skąd bierze się PDF? KSeF nie dostarcza faktur w PDF. Plik generowany jest lokalnie na podstawie XML faktury.",
-  "Co to jest kontekst logowania? KSeF wymaga podania nie tylko tokena, ale też identyfikatora firmy (np. NIP), w imieniu której się logujesz.",
-  "Ile faktur można pobrać na raz? Maksymalnie 50 faktur w jednej paczce.",
-  "Czy dane są gdzieś zapisywane? Nie. Każde zapytanie jest izolowane – serwer proxy jest bezstanowy i nie posiada bazy danych.",
+  {
+    q: "Czy mój token jest bezpieczny?",
+    a: "Tak – szyfrowanie RSA-OAEP odbywa się lokalnie, token nigdy nie jest wysyłany w postaci jawnego tekstu.",
+  },
+  {
+    q: "Dlaczego potrzebny jest serwer proxy?",
+    a: "API KSeF blokuje żądania bezpośrednio z przeglądarki (brak nagłówka CORS). Proxy tylko przekazuje żądania, nic nie zapisuje.",
+  },
+  {
+    q: "Skąd bierze się PDF?",
+    a: "KSeF nie dostarcza faktur w PDF. Plik generowany jest lokalnie na podstawie XML faktury.",
+  },
+  {
+    q: "Co to jest kontekst logowania?",
+    a: "KSeF wymaga podania nie tylko tokena, ale też identyfikatora firmy (np. NIP), w imieniu której się logujesz.",
+  },
+  {
+    q: "Ile faktur można pobrać na raz?",
+    a: "Maksymalnie 50 faktur w jednej paczce.",
+  },
+  {
+    q: "Czy dane są gdzieś zapisywane?",
+    a: "Nie. Każde zapytanie jest izolowane – serwer proxy jest bezstanowy i nie posiada bazy danych.",
+  },
 ];
 
 function ListPanel({
@@ -85,7 +103,23 @@ export default function QAPanel() {
         </Typography>
       </Paper>
 
-      <ListPanel title="FAQ" items={faqItems} />
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="subtitle2" color="secondary" gutterBottom>
+          FAQ
+        </Typography>
+        <Stack spacing={1.5}>
+          {faqItems.map(({ q, a }) => (
+            <Box key={q}>
+              <Typography variant="body2" fontWeight={600} color="text.primary">
+                {q}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {a}
+              </Typography>
+            </Box>
+          ))}
+        </Stack>
+      </Paper>
     </Stack>
   );
 }
