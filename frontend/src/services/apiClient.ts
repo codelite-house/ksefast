@@ -21,11 +21,15 @@ async function assertOk(response: Response, fallback: string): Promise<void> {
 
   const payload = await parseResponse(response);
   if (typeof payload === "object" && payload !== null) {
-    const p = payload as { exceptionDescription?: string; message?: string };
+    const p = payload as {
+      exceptionDescription?: string;
+      message?: string;
+      ksefDetails?: unknown;
+    };
     throw new KsefApiError(
       p.exceptionDescription ?? p.message ?? fallback,
       response.status,
-      payload,
+      p.ksefDetails !== undefined ? p.ksefDetails : payload,
     );
   }
 

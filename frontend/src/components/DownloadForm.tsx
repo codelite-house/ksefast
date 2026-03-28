@@ -1,9 +1,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useDownloadInvoices } from "../hooks/useDownloadInvoices";
-import type { DownloadInvoicesRequest } from "../types";
+import type { DownloadInvoicesRequest, ContextIdentifierType } from "../types";
+import { KsefApiError } from "../services/apiClient";
 import { monthLabels, defaultMonth } from "../lib/monthLabels";
 
 import Alert from "@mui/material/Alert";
+import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
@@ -12,6 +14,45 @@ import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
+
+const CONTEXT_META: Record<
+  ContextIdentifierType,
+  {
+    placeholder: string;
+    helperText: string;
+    validate: (value: string) => string | null;
+  }
+> = {
+  Nip: {
+    placeholder: "np. 1234567890",
+    helperText: "10-cyfrowy NIP podatnika",
+    validate: (v) =>
+      /^\d{10}$/.test(v.trim())
+        ? null
+        : "NIP musi składać się z dokładnie 10 cyfr",
+  },
+  NipVatUe: {
+    placeholder: "np. PL1234567890",
+    helperText: "Kod kraju UE (2 litery) + numer VAT UE",
+    validate: (v) =>
+      /^[A-Za-z]{2}[A-Za-z0-9]{2,12}$/.test(v.trim())
+        ? null
+        : "Nieprawidłowy format (np. PL1234567890)",
+  },
+  InternalId: {
+    placeholder: "np. 12345678",
+    helperText: "Wewnętrzny identyfikator podatnika w KSeF",
+    validate: (v) => (v.trim() ? null : "Wymagane"),
+  },
+  PeppolId: {
+    placeholder: "np. iso6523-actorid-upis::0106:1234567890",
+    helperText: "Identyfikator Peppol (schemat::wartość)",
+    validate: (v) =>
+      v.includes("::")
+        ? null
+        : 'Peppol ID musi zawierać separator "::" (np. iso6523-actorid-upis::0106:1234567890)',
+  },
+};
 
 export default function DownloadForm() {
   const [token, setToken] = useState("");
@@ -28,6 +69,12 @@ export default function DownloadForm() {
   >("Invoicing");
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth.label);
   const [format, setFormat] = useState<"xml" | "pdf">("xml");
+  const [contextValueTouched, setContextValueTouched] = useState(false);
+
+  const contextMeta = CONTEXT_META[contextType];
+  const contextValueError = contextValueTouched
+    ? contextMeta.validate(contextValue)
+    : null;
 
   const {
     mutate: downloadInvoices,
@@ -50,6 +97,8 @@ export default function DownloadForm() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setContextValueTouched(true);
+    if (contextMeta.validate(contextValue)) return;
 
     const request: DownloadInvoicesRequest = {
       environment,
@@ -117,15 +166,17 @@ export default function DownloadForm() {
             select
             label="Typ kontekstu"
             value={contextType}
-            onChange={(e) =>
+            onChange={(e) => {
               setContextType(
                 e.target.value as
                   | "Nip"
                   | "InternalId"
                   | "NipVatUe"
                   | "PeppolId",
-              )
-            }
+              );
+              setContextValue("");
+              setContextValueTouched(false);
+            }}
             fullWidth
           >
             <MenuItem value="Nip">NIP</MenuItem>
@@ -137,7 +188,10 @@ export default function DownloadForm() {
             label="Wartość kontekstu"
             value={contextValue}
             onChange={(e) => setContextValue(e.target.value)}
-            placeholder="np. 1234567890"
+            onBlur={() => setContextValueTouched(true)}
+            placeholder={contextMeta.placeholder}
+            helperText={contextValueError ?? contextMeta.helperText}
+            error={!!contextValueError}
             required
             fullWidth
           />
@@ -238,7 +292,32 @@ export default function DownloadForm() {
         )}
         {isError && (
           <Alert severity="error">
+            <AlertTitle>Błąd</AlertTitle>
             {downloadError?.message ?? "Wystąpił nieznany błąd."}
+            {downloadError instanceof KsefApiError &&
+              downloadError.details != null &&
+              typeof downloadError.details === "object" && (
+                <Box component="details" sx={{ mt: 1.5 }}>
+                  <Box
+                    component="summary"
+                    sx={{ cursor: "pointer", fontSize: "0.8em", opacity: 0.75 }}
+                  >
+                    Szczegóły odpowiedzi KSeF
+                  </Box>
+                  <Box
+                    component="pre"
+                    sx={{
+                      mt: 0.5,
+                      fontSize: "0.75em",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-all",
+                      opacity: 0.8,
+                    }}
+                  >
+                    {JSON.stringify(downloadError.details, null, 2)}
+                  </Box>
+                </Box>
+              )}
           </Alert>
         )}
       </Box>

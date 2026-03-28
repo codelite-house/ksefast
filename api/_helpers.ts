@@ -41,6 +41,16 @@ export async function readResponseBody(response: Response): Promise<unknown> {
   return response.text();
 }
 
+class KsefUpstreamError extends Error {
+  constructor(
+    message: string,
+    readonly ksefBody: unknown,
+  ) {
+    super(message);
+    this.name = "KsefUpstreamError";
+  }
+}
+
 export async function assertOk(
   response: Response,
   fallbackMessage: string,
@@ -54,24 +64,26 @@ export async function assertOk(
     const maybeException = payload as {
       exceptionDescription?: string;
       message?: string;
-      details?: string[];
     };
-    throw new Error(
+    throw new KsefUpstreamError(
       maybeException.exceptionDescription ??
         maybeException.message ??
         fallbackMessage,
+      payload,
     );
   }
 
-  throw new Error(String(payload || fallbackMessage));
+  throw new KsefUpstreamError(String(payload || fallbackMessage), payload);
 }
 
 export function handleError(error: unknown, res: VercelResponse): void {
   const message = error instanceof Error ? error.message : "Unknown error";
-  const status = 400;
+  const ksefDetails =
+    error instanceof KsefUpstreamError ? error.ksefBody : undefined;
 
-  res.status(status).json({
-    status: status,
-    message: message,
+  res.status(400).json({
+    status: 400,
+    message,
+    ...(ksefDetails !== undefined ? { ksefDetails } : {}),
   });
 }

@@ -1,3 +1,15 @@
+# 2026-03-28
+
+### Walidacja wartości kontekstu + lepsze komunikaty błędów
+
+- `api/_helpers.ts`: dodano klasę `KsefUpstreamError` z polem `ksefBody` (oryginalne ciało odpowiedzi KSeF); `assertOk()` teraz ją rzuca zamiast `Error`; `handleError()` dołącza `ksefDetails` do odpowiedzi 400.
+- `frontend/src/services/apiClient.ts`: `assertOk()` wyciąga `ksefDetails` z odpowiedzi proxy i ustawia je jako `details` w `KsefApiError` — dzięki temu oryginalne ciało błędu KSeF trafia do frontendu.
+- `frontend/src/components/DownloadForm.tsx`:
+  - Dodano `CONTEXT_META` — per każdy `ContextIdentifierType` definiuje placeholder, tekst pomocniczy i funkcję walidującą (NIP: dokładnie 10 cyfr; NipVatUe: 2 litery + 2-12 alfanumeryk; InternalId: niepuste; PeppolId: zawiera `::`).
+  - Pole „Wartość kontekstu" pokazuje błąd walidacji przy `onBlur` oraz przy próbie submit; błąd blokuje wysłanie.
+  - Zmiana `contextType` czyści wartość i resetuje stan touched.
+  - Alert błędu rozszerzony o `<AlertTitle>` oraz rozwijany element `<details>` ze szczegółami JSON odpowiedzi KSeF (widoczny tylko gdy `KsefApiError` ma niepuste `details`).
+
 # 2026-03-27
 
 ### Usunięcie nieużywanego pola email
