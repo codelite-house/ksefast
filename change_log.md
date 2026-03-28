@@ -19,7 +19,12 @@
   - Zmiana `contextType` czyści wartość i resetuje stan touched.
   - Alert błędu rozszerzony o `<AlertTitle>` oraz rozwijany element `<details>` ze szczegółami JSON odpowiedzi KSeF (widoczny tylko gdy `KsefApiError` ma niepuste `details`).
 
-# 2026-03-27
+
+# 2026-03-28
+
+### Usunięcie starego folderu api/
+
+- Usunięto cały folder `api/` (Edge Functions) wraz z podfolderami i plikami, ponieważ cała logika proxy do KSeF została przeniesiona do `server/server.ts` (Express backend). Folder nie był już używany w aktualnej architekturze.
 
 ### Usunięcie nieużywanego pola email
 
@@ -183,7 +188,6 @@ hooks/
 #### Dokumentacja
 
 - zaktualizowano `README.md` z nową architekturą
-- dodano `EDGE_FUNCTIONS.md` - dokumentacja Edge Functions
 - dodano `DEPLOY_VERCEL.md` - instrukcja deployowania na Vercel
 - zaktualizowano `.gitignore` - dodano `.vercel` folder
 

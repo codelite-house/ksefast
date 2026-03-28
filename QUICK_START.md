@@ -4,13 +4,8 @@ Witaj w **KSeFast** - aplikacji do pobierania faktur z KSeF z architekturą **Pr
 
 ## Co się zmieniło?
 
-Tradycyjny backend został zastąpiony **Vercel Edge Functions**, co oznacza:
 
-✅ Token nigdy nie jest zapisywany  
-✅ Brak bazy danych  
-✅ Brak centralnego serwera przechowującego dane  
-✅ Całe przetwarzanie w przeglądarce użytkownika  
-✅ Globalna latencja (Edge Network rozłożony na całym świecie)
+Tradycyjny backend został zastąpiony **bezstanowym backendem Express** (uruchamianym przez Docker Compose). Token nigdy nie jest zapisywany, nie ma bazy danych, a całe przetwarzanie (szyfrowanie, PDF, ZIP) odbywa się lokalnie w przeglądarce użytkownika.
 
 ## Architektura
 
@@ -41,24 +36,19 @@ Tradycyjny backend został zastąpiony **Vercel Edge Functions**, co oznacza:
 
 ## Struktura projektu
 
+
 ```
 ksefast/
 ├── frontend/              # React + Vite + TypeScript
 │   ├── src/
 │   │   ├── App.tsx       # UI z privacy banner
-│   │   ├── ksefClient.ts # Logika KSeF (RSA, autoryzacja)
 │   │   ├── archiveService.ts # Budowanie ZIP/PDF
-│   │   └── api.ts        # Wrapper do Edge Functions
+│   │   └── ...           # Pozostałe pliki frontendu
 │   └── .env.local        # VITE_API_BASE_URL=/api
-├── api/                   # Edge Functions (Vercel)
-│   ├── _helpers.ts
-│   ├── security/
-│   ├── auth/
-│   └── invoices/
-├── backend/              # Express (local dev only)
-├── vercel.json          # Konfiguracja Vercel
-├── EDGE_FUNCTIONS.md    # Dokumentacja architekury
-└── DEPLOY_VERCEL.md     # Instrukcja deployowania
+├── server/                # Express backend (proxy do KSeF)
+│   └── server.ts         # Główny serwer proxy
+├── docker-compose.yml     # Stack: frontend + backend
+└── README.md              # Dokumentacja
 ```
 
 ## Local Development
@@ -99,24 +89,10 @@ Tworzy:
 - `frontend/dist/` - zoptymalizowany frontend
 - `backend/dist/` - skompilowany backend
 
-## Deploy na Vercel
 
-### Opcja 1: CLI
+## Deploy produkcyjny
 
-```bash
-npm run deploy
-```
-
-### Opcja 2: GitHub integration
-
-1. Push na main branch w GitHub
-2. Vercel automatycznie deployuje
-
-Vercel deployuje:
-- Frontend do `yourdomain.vercel.app`
-- Edge Functions do `yourdomain.vercel.app/api/*`
-
-Każdy branch ma automatyczne preview environment.
+Wersja produkcyjna uruchamiana jest przez Docker Compose (frontend + backend Express). Nie jest już wspierany deploy na Vercel/Edge Functions.
 
 ## Productioon Flow
 

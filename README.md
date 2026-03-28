@@ -49,6 +49,6 @@ docker compose down
 ## Stack
 
 - **Frontend**: React + Vite + TypeScript
-- **Serwer proxy**: Node.js (lokalnie) / Vercel Edge Functions (produkcja)
+- **Serwer proxy**: Node.js (Express backend, uruchamiany przez Docker Compose)
 - **PDF**: [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) – vendored lokalnie
 - **Crypto**: jsrsasign (RSA-OAEP szyfrowanie tokena w przeglądarce)

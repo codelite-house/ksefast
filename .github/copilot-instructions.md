@@ -2,15 +2,17 @@
 
 ## Projekt
 
+
 KSeFast: aplikacja do pobierania faktur z KSeF (Krajowy System e-Faktur, Ministerstwo Finansów PL).
-Architektura: React frontend + Vercel Edge Functions jako proxy do KSeF API.
+Architektura: React frontend + backend Express (Node.js, uruchamiany przez Docker Compose) jako proxy do KSeF API.
 
 ---
 
 ## KSeF API – źródło prawdy
 
+
 **Specyfikacje OpenAPI** są w `docs/openapi/`. Są to pliki 1:1 z oficjalnym API KSeF.
-Zawsze sprawdzaj je przed zmianą czegokolwiek w `api/`.
+Zawsze sprawdzaj je przed zmianą czegokolwiek w backendzie (`server/`).
 
 ### Adresy bazowe (KSeF API v2)
 
@@ -64,17 +66,11 @@ Test:       https://api-test.ksef.mf.gov.pl/v2   ← zweryfikuj z docs/openapi/k
 - Przekazywany: `Authorization: Bearer {accessToken}`
 - Odświeżanie: `POST /auth/token/refresh` (zamiast ponownego logowania)
 
+
 ### CORS – **ZABLOKOWANE** (potwierdzone)
 
 KSeF API **nie ustawia** nagłówka `Access-Control-Allow-Origin`.
-Bezpośrednie wywołania `fetch()` z przeglądarki kończą się błędem:
-
-```
-Access to fetch at 'https://api-test.ksef.mf.gov.pl/v2/...' has been blocked by CORS policy:
-No 'Access-Control-Allow-Origin' header is present on the requested resource.
-```
-
-**Wniosek: proxy w `api/` jest konieczne.** Nie usuwaj go ani nie próbuj wywoływać KSeF bezpośrednio z frontendu.
+Bezpośrednie wywołania `fetch()` z przeglądarki kończą się błędem CORS – dlatego wymagany jest backend proxy (Express, server/server.ts).
 
 ---
 
@@ -87,11 +83,8 @@ ksefast/
 │   ├── archiveService.ts ← budowanie ZIP (XML lub PDF przez @mdab25/ksef-pdf)
 │   ├── api.ts            ← cienki wrapper: ksefClient + archiveService → Blob
 │   └── App.tsx           ← UI (formularz, stany)
-├── api/                  ← Vercel Edge Functions (proxy do KSeF)
-│   ├── _helpers.ts       ← base URLs, CORS, error handling
-│   ├── auth/             ← challenge, token (init), status, redeem
-│   ├── invoices/         ← metadata, download
-│   └── security/         ← certificates
+├── server/               ← backend Express (proxy do KSeF)
+│   └── server.ts         ← główny serwer proxy
 ├── docs/openapi/         ← specyfikacje OpenAPI KSeF (źródło prawdy)
 ├── docker-compose.yml    ← lokalny stack: frontend (:8080) + backend (:3001, vercel dev)
 └── vercel.json           ← konfiguracja Vercel
@@ -114,7 +107,7 @@ Przy implementacji lub modyfikacji modeli DTO (typy żądań/odpowiedzi) **zawsz
 - `docs/openapi/ksef-api-test.json` – środowisko testowe
 
 Nazwy pól, typy, wartości enum – bierz 1:1 ze specyfikacji, nie zgaduj.
-Typy frontendowe są w `frontend/src/types.ts`, typy backendu są inline w plikach `api/`.
+Typy frontendowe są w `frontend/src/types.ts`, typy backendu są inline w plikach `server/`.
 
 ## Reguła changelog
 
