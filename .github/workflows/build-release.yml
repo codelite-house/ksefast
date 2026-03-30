@@ -38,6 +38,16 @@ jobs:
           git config user.name "github-actions"
       git push
 
+  build-test-push:
+    needs: versioning
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        # ...pozostałe kroki build-test-push...
   publish-helm-chart:
     needs: build-test-push
     runs-on: ubuntu-latest
@@ -57,14 +67,6 @@ jobs:
       - name: Publish Helm charts to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-  build-test-push:
-    needs: versioning
-    runs-on: ubuntu-latest
-    env:
-      REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}
-    steps:
-      - name: Checkout repo
         uses: actions/checkout@v4
           git config user.email "actions@github.com"
           git add VERSION
