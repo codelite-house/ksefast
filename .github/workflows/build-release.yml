@@ -1,0 +1,103 @@
+name: Build & Release KSeFast
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Bump version (semver)
+        id: bump
+        run: |
+          BRANCH=$(echo "${GITHUB_REF#refs/heads/}")
+          if [[ "$BRANCH" == main ]]; then
+            PREFIX=""
+            FILE="production"
+          else
+            PREFIX="-$BRANCH"
+            FILE="staging"
+          fi
+          VERSION=$(cat VERSION 2>/dev/null || echo "0.0.0")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          PATCH=$((PATCH+1))
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH$PREFIX"
+          echo "$NEW_VERSION" > VERSION
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add VERSION
+          git commit -m "ci: bump version to ${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
+          git push
+
+  build-test-push:
+    needs: versioning
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t $REGISTRY/${IMAGE_NAME}:${{ needs.versioning.outputs.new_version }} .
+
+      - name: Run tests (frontend)
+        run: |
+          cd frontend && npm ci && npm run build && npm test
+
+      - name: Run tests (backend)
+        run: |
+          cd server && npm ci && npm run build && npm test
+
+      - name: Push Docker image
+        run: |
+          docker push $REGISTRY/${IMAGE_NAME}:${{ needs.versioning.outputs.new_version }}
+
+    publish-helm-chart:
+      needs: build-test-push
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout repo
+          uses: actions/checkout@v4
+        - name: Set up Helm
+          uses: azure/setup-helm@v4
+          with:
+            version: v3.14.0
+        - name: Package backend chart
+          run: |
+            helm package helm/ksefast-backend --destination packaged-charts
+        - name: Package frontend chart
+          run: |
+            helm package helm/ksefast-frontend --destination packaged-charts
+        - name: Publish Helm charts to GitHub Pages
+          uses: peaceiris/actions-gh-pages@v4
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            publish_dir: ./packaged-charts
+            destination_dir: helm-charts
