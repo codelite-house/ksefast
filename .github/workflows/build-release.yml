@@ -1,8 +1,6 @@
 name: Build & Release KSeFast
 
 on:
-  push:
-    branches:
       - main
       - 'feature/**'
 
@@ -38,6 +36,36 @@ jobs:
       - name: Commit version bump
         run: |
           git config user.name "github-actions"
+      git push
+
+  publish-helm-chart:
+    needs: build-test-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+      - name: Package backend chart
+        run: |
+          helm package helm/ksefast-backend --destination packaged-charts
+      - name: Package frontend chart
+        run: |
+          helm package helm/ksefast-frontend --destination packaged-charts
+      - name: Publish Helm charts to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+  build-test-push:
+    needs: versioning
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
           git config user.email "actions@github.com"
           git add VERSION
           git commit -m "ci: bump version to ${{ steps.bump.outputs.new_version }}" || echo "No changes to commit"
