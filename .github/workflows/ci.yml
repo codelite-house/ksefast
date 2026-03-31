@@ -110,7 +110,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: codelite-house/infrastructure
-          ssh-key: ${{ secrets.INFRA_SSH_KEY }}
+          token: ${{ secrets.INFRA_PAT }}
       - name: Update app.yaml revisionVersion
         run: |
           if [[ $GITHUB_REF == refs/heads/main ]]; then
