@@ -1,3 +1,9 @@
+# 2026-03-31
+
+### CI: naprawa docker push – brak uprawnień packages:write
+
+- `.github/workflows/ci.yml`: dodano sekcję `permissions: { contents: read, packages: write }` do joba `build-test-push`, bo domyślny `GITHUB_TOKEN` nie ma uprawnień do tworzenia pakietów organizacji (`denied: installation not allowed to Create organization package`).
+
 # 2026-03-28
 
 ### UX: info o PDF, poprawki QAPanel, nowe README, usunięcie deploy.yml
@@ -18,7 +24,6 @@
   - Pole „Wartość kontekstu" pokazuje błąd walidacji przy `onBlur` oraz przy próbie submit; błąd blokuje wysłanie.
   - Zmiana `contextType` czyści wartość i resetuje stan touched.
   - Alert błędu rozszerzony o `<AlertTitle>` oraz rozwijany element `<details>` ze szczegółami JSON odpowiedzi KSeF (widoczny tylko gdy `KsefApiError` ma niepuste `details`).
-
 
 # 2026-03-28
 

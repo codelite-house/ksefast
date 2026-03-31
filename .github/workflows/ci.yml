@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - 'feature/**'
+      - "feature/**"
 
 jobs:
   version:
@@ -39,6 +39,9 @@ jobs:
   build-test-push:
     needs: version
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     env:
       VERSION: ${{ needs.version.outputs.new_version }}
     steps:
