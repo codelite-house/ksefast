@@ -79,6 +79,8 @@ jobs:
   helm-release:
     needs: [build-test-push, version]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       VERSION: ${{ needs.version.outputs.new_version }}
     steps:
