@@ -77,7 +77,7 @@ jobs:
           cd server && npm ci && npm run test --if-present
 
   helm-release:
-    needs: build-test-push
+    needs: [build-test-push, version]
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.version.outputs.new_version }}
@@ -99,7 +99,7 @@ jobs:
           publish_dir: helm/repo
 
   infra-update:
-    needs: helm-release
+    needs: [helm-release, version]
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.version.outputs.new_version }}
