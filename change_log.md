@@ -1,5 +1,10 @@
 # 2026-03-31
 
+### CI: poprawka nazwy repozytorium w kroku infra-update
+
+- `.github/workflows/ci.yml`: poprawiono nazwę repozytorium na `codelite-house/infrastructure` w kroku checkout infrastructure, aby odpowiadała rzeczywistemu repozytorium na GitHub.
+# 2026-03-31
+
 ### CI: naprawa docker push – brak uprawnień packages:write
 
 - `.github/workflows/ci.yml`: dodano sekcję `permissions: { contents: read, packages: write }` do joba `build-test-push`, bo domyślny `GITHUB_TOKEN` nie ma uprawnień do tworzenia pakietów organizacji (`denied: installation not allowed to Create organization package`).
