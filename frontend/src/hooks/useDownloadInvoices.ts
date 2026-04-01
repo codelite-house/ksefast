@@ -54,6 +54,7 @@ async function pollUntilAuthorized(
 export interface DownloadResult {
   blob: Blob;
   fileName: string;
+  invoiceCount: number;
 }
 
 /**
@@ -173,6 +174,7 @@ export function useDownloadInvoices() {
       return {
         blob,
         fileName: `ksefast-${request.format}-${today}.zip`,
+        invoiceCount: allInvoices.length,
       };
     },
   });

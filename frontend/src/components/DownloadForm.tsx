@@ -8,8 +8,12 @@ import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import InputAdornment from "@mui/material/InputAdornment";
+import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
@@ -18,13 +22,15 @@ import Typography from "@mui/material/Typography";
 const CONTEXT_META: Record<
   ContextIdentifierType,
   {
+    label: string;
     placeholder: string;
     helperText: string;
     validate: (value: string) => string | null;
   }
 > = {
   Nip: {
-    placeholder: "np. 1234567890",
+    label: "Numer NIP firmy",
+    placeholder: "Wpisz NIP swojej firmy",
     helperText: "10-cyfrowy NIP podatnika",
     validate: (v) =>
       /^\d{10}$/.test(v.trim())
@@ -32,6 +38,7 @@ const CONTEXT_META: Record<
         : "NIP musi składać się z dokładnie 10 cyfr",
   },
   NipVatUe: {
+    label: "Numer VAT UE",
     placeholder: "np. PL1234567890",
     helperText: "Kod kraju UE (2 litery) + numer VAT UE",
     validate: (v) =>
@@ -40,11 +47,13 @@ const CONTEXT_META: Record<
         : "Nieprawidłowy format (np. PL1234567890)",
   },
   InternalId: {
+    label: "Identyfikator wewnętrzny",
     placeholder: "np. 12345678",
     helperText: "Wewnętrzny identyfikator podatnika w KSeF",
     validate: (v) => (v.trim() ? null : "Wymagane"),
   },
   PeppolId: {
+    label: "Peppol ID",
     placeholder: "np. iso6523-actorid-upis::0106:1234567890",
     helperText: "Identyfikator Peppol (schemat::wartość)",
     validate: (v) =>
@@ -60,7 +69,7 @@ export default function DownloadForm() {
     "Nip" | "InternalId" | "NipVatUe" | "PeppolId"
   >("Nip");
   const [contextValue, setContextValue] = useState("");
-  const [environment, setEnvironment] = useState<"demo" | "prod">("demo");
+  const [environment, setEnvironment] = useState<"demo" | "prod">("prod");
   const [subjectType, setSubjectType] = useState<
     "Subject1" | "Subject2" | "Subject3" | "SubjectAuthorized"
   >("Subject1");
@@ -70,6 +79,7 @@ export default function DownloadForm() {
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth.label);
   const [format, setFormat] = useState<"xml" | "pdf">("xml");
   const [contextValueTouched, setContextValueTouched] = useState(false);
+  const [lastInvoiceCount, setLastInvoiceCount] = useState<number | null>(null);
 
   const contextMeta = CONTEXT_META[contextType];
   const contextValueError = contextValueTouched
@@ -97,6 +107,7 @@ export default function DownloadForm() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setLastInvoiceCount(null);
     setContextValueTouched(true);
     if (contextMeta.validate(contextValue)) return;
 
@@ -114,6 +125,7 @@ export default function DownloadForm() {
 
     downloadInvoices(request, {
       onSuccess: (result) => {
+        setLastInvoiceCount(result.invoiceCount);
         const objectUrl = URL.createObjectURL(result.blob);
         const link = document.createElement("a");
         link.href = objectUrl;
@@ -150,7 +162,29 @@ export default function DownloadForm() {
           rows={4}
           value={token}
           onChange={(e) => setToken(e.target.value)}
-          placeholder="Wklej token KSeF"
+          placeholder="Wklej token KSeF z portalu Ministerstwa Finansów"
+          helperText={
+            <>
+              Token jest szyfrowany lokalnie, zanim opuści Twoją przeglądarkę.
+              <br />
+              <Link
+                href="https://www.podatki.gov.pl/ksef/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Jak wygenerować token? (Instrukcja)
+              </Link>
+            </>
+          }
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1 }}>
+                <span role="img" aria-label="Bezpieczne pole tokenu">
+                  🔒
+                </span>
+              </InputAdornment>
+            ),
+          }}
           required
           fullWidth
         />
@@ -185,7 +219,7 @@ export default function DownloadForm() {
             <MenuItem value="PeppolId">Peppol ID</MenuItem>
           </TextField>
           <TextField
-            label="Wartość kontekstu"
+            label={contextMeta.label}
             value={contextValue}
             onChange={(e) => {
               setContextValue(e.target.value);
@@ -295,14 +329,41 @@ export default function DownloadForm() {
           fullWidth
           sx={{ py: 1.5 }}
         >
-          {isPending ? "Pobieranie…" : "Pobierz paczkę"}
+          {isPending ? "Pobieranie…" : "Przestań ręcznie pobierać faktury"}
         </Button>
 
-        {isSuccess && (
-          <Alert severity="success">
-            ✓ Paczka została pobrana. Dane nigdy nie opuszczają Twojej
-            przeglądarki.
+        <Alert severity="info" variant="outlined">
+          Oszczędź średnio 15 minut przy każdym rozliczeniu miesięcznym.
+        </Alert>
+
+        {isPending && (
+          <Alert
+            severity="info"
+            icon={<CircularProgress size={18} color="inherit" />}
+          >
+            Łączenie z KSeF i pobieranie faktur. To może potrwać do kilkudziesięciu sekund.
           </Alert>
+        )}
+
+        {isSuccess && (
+          <Stack spacing={1.5}>
+            <Alert severity="success">
+              ✓ Pomyślnie pobrano {lastInvoiceCount ?? "wybraną liczbę"} faktur.
+              Dane nigdy nie opuszczają Twojej przeglądarki.
+            </Alert>
+            <Alert severity="info" variant="outlined">
+              <AlertTitle>Udało się!</AlertTitle>
+              Zaoszczędziłeś właśnie sporo czasu. Jeśli chcesz, możesz nam za to
+              podziękować kawą. ☕{" "}
+              <Link
+                href="https://buycoffee.to/codelitehouse"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Postaw kawę
+              </Link>
+            </Alert>
+          </Stack>
         )}
         {isError && (
           <Alert severity="error">

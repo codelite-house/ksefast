@@ -1,3 +1,67 @@
+## 2026-04-02
+
+### UX/UI/SEO: wygładzenie formularza, tabeli i sekcji zaufania
+
+- `frontend/src/components/AppHeader.tsx`: dodano semantyczny nagłówek H1 „Darmowe pobieranie faktur z KSeF (XML i PDF)” oraz powiększono i rozjaśniono podtytuł, aby poprawić czytelność i SEO.
+- `frontend/src/components/DownloadForm.tsx`: pole kontekstu otrzymało bardziej zrozumiałe etykiety (dla NIP: „Numer NIP firmy”), dodano link „Jak wygenerować token? (Instrukcja)”, przeniesiono box o oszczędności czasu pod główne CTA i dodano widoczny stan ładowania „Łączenie z KSeF i pobieranie faktur...”.
+- `frontend/src/hooks/useDownloadInvoices.ts`: rozszerzono wynik pobierania o `invoiceCount`, aby po sukcesie pokazać użytkownikowi liczbę pobranych faktur.
+- `frontend/src/components/QAPanel.tsx`: usunięto poziome przewijanie tabeli porównawczej (zwężono copy nagłówków, zmniejszono gęstość tabeli), zintegrowano komunikat „Project verified” bezpośrednio z sekcją bezpieczeństwa oraz dodano FAQ: „Czy KSeFast pozwala na archiwizację faktur?”.
+
+## 2026-04-01
+
+### UX: przewaga "otwartosc na pomysly" i kontakt mailowy
+
+- `frontend/src/components/QAPanel.tsx`: dodano nowy wiersz w tabeli porównawczej "Otwartosc na pomysly" (Portal Rzadowy KSeF: "Nie", KSeFast.pl: "Tak, odczytamy kazdy mail").
+- `frontend/src/components/QAPanel.tsx`: dodano widoczny callout z CTA: "Masz pomysl jak mozemy dzialac lepiej?" oraz link mailto `contact@codelitehouse.com`.
+
+### UX: tabela porównawcza i badge oszczędności czasu
+
+- `frontend/src/components/QAPanel.tsx`: dodano tabelę porównawczą „Portal Rządowy KSeF vs KSeFast.pl” (pobieranie wielu faktur, PDF, czas operacji, cena), aby użytkownik mógł szybko ocenić przewagę narzędzia.
+- `frontend/src/components/DownloadForm.tsx`: dodano mały komunikat przy formularzu „Oszczędź średnio 15 minut przy każdym rozliczeniu miesięcznym.” jako stały, wizualny wzmacniacz wartości.
+
+### UX FAQ: "Dlaczego KSeFast zamiast portalu MF"
+
+- `frontend/src/components/QAPanel.tsx`: dodano nowe pytanie i odpowiedź do FAQ, które porównują KSeFast z oficjalnym portalem Ministerstwa Finansów w języku korzyści dla przedsiębiorcy (pobieranie zbiorcze, szybszy proces, wygodna paczka ZIP dla księgowości).
+
+### UX: kontekstowa zachęta "Postaw kawę" po udanym pobraniu
+
+- `frontend/src/components/DownloadForm.tsx`: po zakończeniu pobierania paczki ZIP dodano dodatkowe okienko z komunikatem "Udało się! Zaoszczędziłeś właśnie 10 minut klikania" oraz linkiem "Postaw kawę", aby pokazać CTA wsparcia w momencie najwyższej wartości dla użytkownika.
+
+### UX: sygnały zaufania przy tokenie i Open Source
+
+- `frontend/src/components/DownloadForm.tsx`: dodano ikonę kłódki przy polu `Token KSeF` oraz prosty komunikat, że token jest szyfrowany lokalnie przed wysyłką.
+- `frontend/src/components/QAPanel.tsx`: dodano belkę zaufania „Project verified on GitHub” (ze „stars”) i linkiem do repozytorium, aby wzmocnić wiarygodność projektu dla użytkowników technicznych.
+
+### SEO: FAQPage JSON-LD + fraza "Jak pobrać faktury z KSeF do PDF"
+
+- `frontend/src/components/QAPanel.tsx`: dodano dane strukturalne `FAQPage` w formacie JSON-LD na podstawie aktualnych pytań i odpowiedzi, aby FAQ mogło być lepiej interpretowane przez Google.
+- `frontend/src/components/QAPanel.tsx`: dodano FAQ z odpowiedzią zawierającą frazę "Jak pobrać faktury z KSeF do PDF", żeby pokryć częstą intencję wyszukiwania użytkowników.
+
+### UX copy: prostszy placeholder dla NIP
+
+- `frontend/src/components/DownloadForm.tsx`: zmieniono placeholder pola „Wartość kontekstu” dla typu `NIP` na „Wpisz NIP swojej firmy”, żeby uprościć język i ograniczyć techniczne nazewnictwo.
+
+### Domyślne środowisko ustawione na produkcję
+
+- `frontend/src/components/DownloadForm.tsx`: zmieniono domyślną wartość pola „Środowisko” z `Demo` na `Produkcja`, aby ograniczyć ryzyko użycia prawdziwego tokena w środowisku testowym i uniknąć mylących pustych wyników.
+
+### UX copy: KROK 2-4 (Q&A, SEO, wsparcie projektu)
+
+- `frontend/src/components/QAPanel.tsx`: sekcja „Jak to działa?” została zmieniona na „Jak pobrać faktury w 3 krokach?” z krótką instrukcją 1-2-3 bez żargonu technicznego.
+- `frontend/src/components/QAPanel.tsx`: sekcja „Najważniejsze dla Ciebie” została zastąpiona nagłówkiem „Dlaczego KSeFast ułatwi Ci życie?” i copy skupionym na korzyściach (szybkie wyszukiwanie, ZIP, konwersja XML do PDF).
+- `frontend/src/components/QAPanel.tsx`: panel prywatności dostał nowy nagłówek „Bezpieczeństwo i Anonimowość” oraz prosty komunikat o braku przechowywania faktur i publicznym kodzie projektu.
+- `frontend/src/components/QAPanel.tsx`: w FAQ doprecyzowano, że powiadomienia o nowej fakturze to funkcja planowana, oraz dodano pytanie „Ile to kosztuje?” z odpowiedzią o darmowym dostępie i wsparciu przez kawę.
+- `frontend/src/components/QAPanel.tsx`: w sekcji „Wesprzyj projekt” dodano krótkie zdanie zachęcające do wsparcia po oszczędzeniu czasu.
+
+### UX copy: wyeksponowanie korzyści i mocniejsze CTA
+
+- `frontend/src/components/QAPanel.tsx`: dodano sekcję „Najważniejsze dla Ciebie" z 3 kluczowymi pytaniami UX (powiadomienia, szybkie wyszukiwanie, przekazanie do księgowości). Rozszerzono FAQ o te same scenariusze i uproszczono komunikat bezpieczeństwa na język korzyści.
+- `frontend/src/components/DownloadForm.tsx`: zmieniono główne CTA z „Pobierz paczkę" na „Przestań ręcznie pobierać faktury", żeby lepiej komunikować ulgę i oszczędność czasu.
+
+### Uproszczenie języka w sekcji Q&A
+
+- `frontend/src/components/QAPanel.tsx`: przepisano treści w sekcjach „Jak to działa?”, „Prywatność przede wszystkim” oraz FAQ na prostszy, mniej techniczny język. Dodano bardziej przyjazne pytanie „Czy muszę ręcznie pobierać każdą fakturę z KSeF?” z odpowiedzią skupioną na korzyści dla użytkownika.
+
 # 2026-03-31
 
 ### CI: poprawka nazwy repozytorium w kroku infra-update
