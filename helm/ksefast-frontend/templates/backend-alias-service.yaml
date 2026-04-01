@@ -1,0 +1,11 @@
+{{- if .Values.backendAlias.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  labels:
+    {{- include "ksefast-frontend.labels" . | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ .Values.backendAlias.externalName | quote }}
+{{- end }}
