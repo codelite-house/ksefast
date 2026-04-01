@@ -111,7 +111,7 @@ jobs:
         with:
           repository: codelite-house/infrastructure
           token: ${{ secrets.INFRA_PAT }}
-      - name: Update app.yaml revisionVersion
+      - name: Update app.yaml chartVersion
         run: |
           if [[ $GITHUB_REF == refs/heads/main ]]; then
             ENV=production
@@ -119,13 +119,13 @@ jobs:
             ENV=staging
           fi
           APP_PATH=apps/$ENV/ksefast-frontend/app.yaml
-          sed -i "s/revisionVersion:.*/revisionVersion: ${VERSION}/" $APP_PATH
+          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" $APP_PATH
       - name: Commit and push infra changes
         run: |
           git config user.name "automat@codelitehouse.com"
           git config user.email "automat@codelitehouse.com"
           git add .
-          git commit -m "ci: update ksefast-frontend revisionVersion to ${VERSION} [auto]" || echo "No changes to commit"
+          git commit -m "ci: update ksefast-frontend chartVersion to ${VERSION} [auto]" || echo "No changes to commit"
           git push
       - name: Add entry to updates.log
         run: |
