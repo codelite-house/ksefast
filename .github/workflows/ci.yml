@@ -118,20 +118,20 @@ jobs:
           else
             ENV=staging
           fi
-          APP_PATH=apps/$ENV/ksefast-frontend/app.yaml
-          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" $APP_PATH
+          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" apps/$ENV/ksefast-frontend/app.yaml
+          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" apps/$ENV/ksefast-backend/app.yaml
       - name: Commit and push infra changes
         run: |
           git config user.name "automat@codelitehouse.com"
           git config user.email "automat@codelitehouse.com"
           git add .
-          git commit -m "ci: update ksefast-frontend chartVersion to ${VERSION} [auto]" || echo "No changes to commit"
+          git commit -m "ci: update ksefast-frontend and ksefast-backend chartVersion to ${VERSION} [auto]" || echo "No changes to commit"
           git push
       - name: Add entry to updates.log
         run: |
-          echo "${{ github.event.head_commit.timestamp }}: Pipeline updated ksefast-frontend to ${VERSION}" >> updates.log
+          echo "${{ github.event.head_commit.timestamp }}: Pipeline updated ksefast-frontend and ksefast-backend to ${VERSION}" >> updates.log
           git add updates.log
-          git commit -m "ci: log update for ksefast-frontend ${VERSION}" || echo "No changes to commit"
+          git commit -m "ci: log update for ksefast ${VERSION}" || echo "No changes to commit"
           git push
       - name: Tag release
         run: |
