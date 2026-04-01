@@ -95,6 +95,23 @@ jobs:
           helm package helm/ksefast-frontend --version ${VERSION} --app-version ${VERSION}
           helm push ksefast-frontend-${VERSION}.tgz oci://ghcr.io/codelite-house/helm
 
+  tag-release:
+    needs: [infra-update, version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.new_version }}
+    steps:
+      - name: Checkout ksefast repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tag release in ksefast repo
+        run: |
+          git tag ${VERSION}
+          git push origin ${VERSION}
+
   infra-update:
     needs: [helm-release, version]
     runs-on: ubuntu-latest
@@ -128,7 +145,3 @@ jobs:
           git add updates.log
           git commit -m "ci: log update for ksefast ${VERSION}" || echo "No changes to commit"
           git push
-      - name: Tag release
-        run: |
-          git tag ${VERSION}
-          git push origin ${VERSION}
