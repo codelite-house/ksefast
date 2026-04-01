@@ -6,20 +6,13 @@
 replicaCount: 1
 
 # This sets the container image more information can be found here: https://kubernetes.io/docs/concepts/containers/images/
-ingress:
-  enabled: true
-  className: haproxy
-  hosts:
-    - host: my-app.devowiec.pl
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  # annotations:
-  #   haproxy.org/timeout-connect: "5s"
-  tls: []
-    # - secretName: chart-example-tls
-    #   hosts:
-    #     - my-app.devowiec.pl
+image:
+  repository: ghcr.io/codelite-house/ksefast-frontend
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+serviceAccount:
   # Specifies whether a service account should be created.
   create: true
   # Automatically mount a ServiceAccount's API credentials?
@@ -29,6 +22,21 @@ ingress:
   # The name of the service account to use.
   # If not set and create is true, a name is generated using the fullname template.
   name: ""
+
+ingress:
+  enabled: false
+  className: haproxy
+  annotations: {}
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: ksefast.pl
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+    # - secretName: chart-example-tls
+    #   hosts:
+    #     - ksefast.pl
 
 # This is for setting Kubernetes Annotations to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
@@ -55,24 +63,6 @@ service:
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 80
 
-# This block is for setting up the ingress for more information can be found here: https://kubernetes.io/docs/concepts/services-networking/ingress/
-ingress:
-
-  enabled: true
-  className: haproxy
-  # Dodatkowe annotacje jeśli potrzebne
-  # annotations:
-  #   haproxy.org/timeout-connect: "5s"
-  hosts:
-    - host: my-app.devowiec.pl
-      paths:
-        - path: /
-          pathType: ImplementationSpecific
-  tls: []
-    # - secretName: chart-example-tls
-    #   hosts:
-    #     - my-app.devowiec.pl
-
 # -- Expose the service via gateway-api HTTPRoute
 # Requires Gateway API resources and suitable controller installed within the cluster
 # (see: https://gateway-api.sigs.k8s.io/guides/)
@@ -83,18 +73,18 @@ httpRoute:
   annotations: {}
   # Which Gateways this Route is attached to.
   parentRefs:
-  - name: gateway
-    sectionName: http
-    # namespace: default
+    - name: gateway
+      sectionName: http
+      # namespace: default
   # Hostnames matching HTTP header.
   hostnames:
-  - chart-example.local
+    - chart-example.local
   # List of rules and filters applied.
   rules:
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /headers
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /headers
   #   filters:
   #   - type: RequestHeaderModifier
   #     requestHeaderModifier:
