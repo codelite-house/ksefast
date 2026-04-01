@@ -125,20 +125,26 @@ jobs:
           token: ${{ secrets.INFRA_PAT }}
       - name: Update app.yaml chartVersion
         run: |
+          set -euo pipefail
           if [[ $GITHUB_REF == refs/heads/main ]]; then
-            ENV=production
+            DEPLOY_ENV=production
           else
-            ENV=staging
+            DEPLOY_ENV=staging
           fi
-          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" apps/$ENV/ksefast-frontend/app.yaml
-          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" apps/$ENV/ksefast-backend/app.yaml
-      - name: Commit and push infra changes
-        run: |
+          echo "Deploy env: $DEPLOY_ENV, version: ${VERSION}"
+          grep -n "chartVersion" apps/$DEPLOY_ENV/ksefast-frontend/app.yaml || echo "WARNING: chartVersion not found in frontend app.yaml"
+          grep -n "chartVersion" apps/$DEPLOY_ENV/ksefast-backend/app.yaml  || echo "WARNING: chartVersion not found in backend app.yaml"
+          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" apps/$DEPLOY_ENV/ksefast-frontend/app.yaml
+          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" apps/$DEPLOY_ENV/ksefast-backend/app.yaml
           git config user.name "automat@codelitehouse.com"
           git config user.email "automat@codelitehouse.com"
+          git diff --stat
           git add .
           git commit -m "ci: update ksefast-frontend and ksefast-backend chartVersion to ${VERSION} [auto]" || echo "No changes to commit"
           git push
+      - name: Add entry to updates.log
+        run: |
+          set -euo pipefail
       - name: Add entry to updates.log
         run: |
           echo "${{ github.event.head_commit.timestamp }}: Pipeline updated ksefast-frontend and ksefast-backend to ${VERSION}" >> updates.log
