@@ -9,8 +9,7 @@
   "scripts": {
     "dev": "concurrently -n api,web -c magenta,cyan \"pnpm --filter ksefast-proxy run dev\" \"pnpm --filter ksefast-frontend run dev\"",
     "build": "pnpm --filter ksefast-frontend run build",
-    "start": "pnpm --filter ksefast-proxy run start",
-    "deploy": "vercel"
+    "start": "pnpm --filter ksefast-proxy run start"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"
@@ -19,7 +18,6 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@tanstack/react-query": "^5.94.5",
-    "@vercel/analytics": "^2.0.1"
+    "@tanstack/react-query": "^5.94.5"
   }
 }

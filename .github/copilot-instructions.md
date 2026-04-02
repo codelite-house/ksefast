@@ -2,14 +2,12 @@
 
 ## Projekt
 
-
 KSeFast: aplikacja do pobierania faktur z KSeF (Krajowy System e-Faktur, Ministerstwo Finansów PL).
 Architektura: React frontend + backend Express (Node.js, uruchamiany przez Docker Compose) jako proxy do KSeF API.
 
 ---
 
 ## KSeF API – źródło prawdy
-
 
 **Specyfikacje OpenAPI** są w `docs/openapi/`. Są to pliki 1:1 z oficjalnym API KSeF.
 Zawsze sprawdzaj je przed zmianą czegokolwiek w backendzie (`server/`).
@@ -66,7 +64,6 @@ Test:       https://api-test.ksef.mf.gov.pl/v2   ← zweryfikuj z docs/openapi/k
 - Przekazywany: `Authorization: Bearer {accessToken}`
 - Odświeżanie: `POST /auth/token/refresh` (zamiast ponownego logowania)
 
-
 ### CORS – **ZABLOKOWANE** (potwierdzone)
 
 KSeF API **nie ustawia** nagłówka `Access-Control-Allow-Origin`.
@@ -86,8 +83,7 @@ ksefast/
 ├── server/               ← backend Express (proxy do KSeF)
 │   └── server.ts         ← główny serwer proxy
 ├── docs/openapi/         ← specyfikacje OpenAPI KSeF (źródło prawdy)
-├── docker-compose.yml    ← lokalny stack: frontend (:8080) + backend (:3001, vercel dev)
-└── vercel.json           ← konfiguracja Vercel
+└── docker-compose.yml    ← lokalny stack: frontend (:8080) + backend (:3001)
 ```
 
 ## Limit faktur

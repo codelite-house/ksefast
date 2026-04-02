@@ -1,4 +1,3 @@
-import { Analytics } from "@vercel/analytics/react";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import CssBaseline from "@mui/material/CssBaseline";
@@ -32,7 +31,6 @@ function App() {
 
         <AppFooter />
       </Container>
-      <Analytics />
     </ThemeProvider>
   );
 }

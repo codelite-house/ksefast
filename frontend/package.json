@@ -13,7 +13,6 @@
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.3.9",
     "@tanstack/react-query": "^5.94.5",
-    "@vercel/analytics": "^2.0.1",
     "jsrsasign": "^11.1.0",
     "jszip": "^3.10.1",
     "pdfmake": "^0.2.23",

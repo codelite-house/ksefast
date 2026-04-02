@@ -4,7 +4,6 @@ Witaj w **KSeFast** - aplikacji do pobierania faktur z KSeF z architekturą **Pr
 
 ## Co się zmieniło?
 
-
 Tradycyjny backend został zastąpiony **bezstanowym backendem Express** (uruchamianym przez Docker Compose). Token nigdy nie jest zapisywany, nie ma bazy danych, a całe przetwarzanie (szyfrowanie, PDF, ZIP) odbywa się lokalnie w przeglądarce użytkownika.
 
 ## Architektura
@@ -20,7 +19,7 @@ Tradycyjny backend został zastąpiony **bezstanowym backendem Express** (urucha
                │ (token encrypted)
                ↓
 ┌──────────────────────────────────────────────────────────┐
-│ VERCEL EDGE FUNCTIONS (pass-through, bezstanowe)        │
+│ EXPRESS BACKEND (Docker, bezstanowy)                    │
 │ - Zbiera żądania od użytkowników                         │
 │ - Przekazuje do KSeF API                                 │
 │ - Ничего не przechowuje, ничего nie zapisuje            │
@@ -35,7 +34,6 @@ Tradycyjny backend został zastąpiony **bezstanowym backendem Express** (urucha
 ```
 
 ## Struktura projektu
-
 
 ```
 ksefast/
@@ -66,6 +64,7 @@ npm run dev
 ```
 
 Otwórz:
+
 - Frontend: http://localhost:5173
 - Backend (local proxy): http://localhost:3001/api
 
@@ -86,13 +85,13 @@ npm run build
 ```
 
 Tworzy:
+
 - `frontend/dist/` - zoptymalizowany frontend
 - `backend/dist/` - skompilowany backend
 
-
 ## Deploy produkcyjny
 
-Wersja produkcyjna uruchamiana jest przez Docker Compose (frontend + backend Express). Nie jest już wspierany deploy na Vercel/Edge Functions.
+Wersja produkcyjna uruchamiana jest przez Docker Compose (frontend + backend Express). Nie jest już wspierany deploy na Vercel.
 
 ## Productioon Flow
 
@@ -104,7 +103,7 @@ Frontend (React)
     ├── Przeglądarkaszy RSA-OAEP
     └── Wysyłasz encrypted
         ↓
-    Edge Function (Vercel)
+    Express Backend (Docker)
         └── Pass-through do KSeF
             ↓
         KSeF API
@@ -125,7 +124,7 @@ Frontend (React)
 
 - ✅ Token nigdy nie jest wysyłany w clear-text
 - ✅ Token nigdy nie jest zapisywany na serwerze
-- ✅ Edge Functions nie przechowują danych
+- ✅ Backend nie przechowuje danych
 - ✅ Brak bazy danych
 - ✅ CORS headers zabraniają dostępu z nieautoryzowanych źródeł (ale to OK bo nic nie przechowujemy)
 - ✅ Każdy request jest izolowany
@@ -134,21 +133,28 @@ Frontend (React)
 ## Key Features
 
 ### Privacy Banner
+
 Na górze aplikacji widać jasny komunikat:
+
 > "Twoje dane są bezpieczne, bo ich nie zbieramy."
 
 ### Auto-generated Months
+
 Zamiast wybierania daty - prosty dropdown z etykietami:
+
 - Marzec 2026
 - Luty 2026
 - Styczeń 2026
 - ...
 
 ### Session Indicator
+
 Gdy wpiszesz token - pojawia się "Sesja aktywna lokalnie" z pulsującym indykatorem.
 
 ### Clear All Button
+
 Jeden klik aby wyczyścić token, formę i cache:
+
 ```javascript
 sessionStorage.clear();
 localStorage.clear();
@@ -159,52 +165,55 @@ localStorage.clear();
 ### "Nie mogę pobrać faktur"
 
 **Przyczyna 1: Zły token**
+
 - Sprawdź czy token jest ważny w KSeF
 
 **Przyczyna 2: Zły NIP**
+
 - Sprawdź czy NIP odpowiada tokenowi
 
 **Przyczyna 3: Zbyt długi zakres dat**
+
 - KSeF obsługuje maksymalnie ~3 miesiące na zapytanie
 - Aplikacja pokazuje co miesiąc - wybierz pojedynczy miesiąc
 
-**Przyczyna 4: Edge Function error**
-- Sprawdź Vercel logs: `vercel logs --follow`
+**Przyczyna 4: Backend error**
+
+- Sprawdź logi Dockera: `docker compose logs backend`
 - Pewnie timeout (KSeF powoli odpowiada)
 
 ### "Token is undefined"
 
 To nie jest błąd, to komunikat że:
+
 1. Nigdy nie przesyłasz tokena na backend
 2. Wszystko szyfruje się lokalnie
 
 ### Chrome DevTools Network Tab
 
 Jeśli sprawdzisz network requests:
+
 - Widzisz `/api/security/certificates?environment=demo`
 - Ale widzisz `Authorization: Bearer encrypted_token_base64`
-- Token jest zaszyfrowany RSA-OAEP, Edge Function nie może go odczytać
+- Token jest zaszyfrowany RSA-OAEP, backend nie może go odczytać
 
 Perfect! 🔒
 
 ## Monitoring na Produkcji
 
 ### Logi
+
 ```bash
-vercel logs
+docker compose logs -f
 ```
 
-### Analytics
-Vercel dashboard pokazuje:
-- Request count per function
-- Error rate
-- Response times
-- Regional distribution
+### Metryki
+
+Monitoruj backend przez logi kontenera lub narzędzia jak Prometheus/Grafana.
 
 ### Alerts
-Ustaw notification w Vercel:
-- Edge Functions error rate > 5%
-- Response time > 5s
+
+Skonfiguruj alerty na poziomie infrastruktury (np. k3s/ArgoCD).
 
 ## Kontakt & Support
 
