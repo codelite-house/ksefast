@@ -1,3 +1,13 @@
+## 2026-04-03
+
+### SEO: pliki indeksacji i meta dla wdrozenia Docker/CI
+
+- `frontend/public/robots.txt`: dodano reguly crawlera i odwolanie do mapy witryny (`Sitemap: https://ksefast.pl/sitemap.xml`).
+- `frontend/public/sitemap.xml`: dodano statyczna mape witryny z adresem strony glownej, aby boty mogly szybciej odnalezc URL.
+- `frontend/Dockerfile`: dodano kopiowanie katalogu `public` do obrazu buildera, aby `robots.txt` i `sitemap.xml` trafialy do `dist` podczas `vite build`.
+- `frontend/nginx.conf`: dodano jawna obsluge `/robots.txt` i `/sitemap.xml` z `try_files ... =404`, zeby uniknac przepisywania tych adresow do `index.html` w trybie SPA.
+- `frontend/index.html`: zaktualizowano `title`, `description`, dodano `meta robots` i `canonical`, aby poprawic sygnaly indeksacji dla Google.
+
 ## 2026-04-02
 
 ### UX/UI/SEO: wygładzenie formularza, tabeli i sekcji zaufania
