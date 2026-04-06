@@ -115,6 +115,9 @@ jobs:
   infra-update:
     needs: [helm-release, version]
     runs-on: ubuntu-latest
+    # This job requires INFRA_PAT secret (access to the private infrastructure repo).
+    # It is skipped automatically in forks where the secret is not available.
+    if: ${{ secrets.INFRA_PAT != '' }}
     env:
       VERSION: ${{ needs.version.outputs.new_version }}
     steps:
@@ -145,8 +148,6 @@ jobs:
       - name: Add entry to updates.log
         run: |
           set -euo pipefail
-      - name: Add entry to updates.log
-        run: |
           echo "${{ github.event.head_commit.timestamp }}: Pipeline updated ksefast-frontend and ksefast-backend to ${VERSION}" >> updates.log
           git add updates.log
           git commit -m "ci: log update for ksefast ${VERSION}" || echo "No changes to commit"

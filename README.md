@@ -1,54 +1,102 @@
 # KSeFast
 
-[![GitHub](https://img.shields.io/badge/GitHub-codelitehouse%2Fksefast-blue?logo=github)](https://github.com/codelitehouse/ksefast)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/codelitehouse/ksefast)](https://github.com/codelitehouse/ksefast/releases)
+[![Docker](https://img.shields.io/badge/docker-compose-blue?logo=docker)](https://docs.docker.com/compose/)
 
 Pobierz faktury z KSeF (Krajowy System e-Faktur) jako paczkę ZIP – w formacie XML lub PDF – bez instalowania żadnego oprogramowania poza Dockerem.
 
+> **Prywatność przede wszystkim.** Token KSeF jest szyfrowany lokalnie w przeglądarce. Faktura nigdy nie dotyka zewnętrznego serwera – archiwum ZIP powstaje bezpośrednio u Ciebie.
+
 ## Co robi
 
-- loguje się do KSeF przy użyciu tokena KSeF (token jest szyfrowany lokalnie, nigdy nie jest zapisywany),
-- pobiera listę faktur dla wskazanego zakresu dat i miesiąca,
+- loguje się do KSeF przy użyciu tokena KSeF (token jest szyfrowany lokalnie w przeglądarce, nigdy nie jest zapisywany),
+- pobiera listę faktur dla wskazanego miesiąca,
 - buduje paczkę ZIP z fakturami w formacie XML albo PDF **lokalnie w przeglądarce** – nic nie trafia na zewnętrzne serwery,
 - wszystkie dane są przetwarzane i niszczone natychmiast po pobraniu.
 
-## Uruchomienie lokalne (Docker Compose)
-
-### Wymagania
+## Wymagania
 
 - [Docker](https://docs.docker.com/get-docker/) z wtyczką Compose (Docker Desktop lub `docker compose` w CLI)
+- Token KSeF i NIP firmy (konto w KSeF Ministerstwa Finansów)
 
-### Uruchomienie
+## Uruchomienie
 
 ```bash
 docker compose up
 ```
 
-Aplikacja będzie dostępna pod adresem: **http://localhost:8080**
+Aplikacja dostępna pod adresem: **http://localhost:8080**
 
-Przy pierwszym uruchomieniu Docker pobierze i zbuduje obrazy – może to chwilę potrwać.
-
-### Zatrzymanie
+Przy pierwszym uruchomieniu Docker zbuduje obrazy – może to chwilę potrwać.
 
 ```bash
-docker compose down
+docker compose down   # zatrzymanie
 ```
 
 ## Jak to działa – prywatność
 
-1. **Token szyfrowany lokalnie** – RSA-OAEP odbywa się w przeglądarce przy użyciu klucza publicznego KSeF. Token nigdy nie opuszcza Twojego urządzenia w postaci jawnego tekstu.
-2. **Serwer proxy** – API KSeF blokuje żądania bezpośrednio z przeglądarki (brak CORS). Lokalny serwer proxy tylko przekazuje zaszyfrowane żądania do KSeF – jest bezstanowy i nie zapisuje żadnych danych.
-3. **Faktury do przeglądarki** – XML faktury trafia bezpośrednio ze KSeF przez proxy do Twojej przeglądarki.
-4. **PDF generowany lokalnie** – KSeF nie dostarcza faktur w formacie PDF. Konwersja XML → PDF odbywa się w całości w przeglądarce (biblioteka [ksef-pdf-generator](https://github.com/CIRFMF/ksef-pdf-generator) oficjalnego repozytorium MF).
-5. **ZIP tworzony lokalnie** – paczka budowana jest w pamięci przeglądarki i pobierana bezpośrednio na Twój komputer.
+```
+Przeglądarka                             KSeF API (MF)
+──────────────────────────────────────   ────────────
+1. Pobiera certyfikat publiczny RSA   ←→  /security/public-key-certificates
+2. Szyfruje token RSA-OAEP lokalnie
+3. Wysyła zaszyfrowany token          →   (przez lokalny proxy)
+4. Odbiera metadane i XML faktur      ←   (przez lokalny proxy)
+5. Generuje PDF i ZIP w pamięci
+6. Pobiera plik – dane są niszczone
+```
+
+- **Token szyfrowany lokalnie** – RSA-OAEP w przeglądarce. Serwer proxy widzi tylko zaszyfrowany blob.
+- **Serwer proxy bezstanowy** – nie loguje, nie zapisuje, nie przechowuje żadnych danych. Istnieje wyłącznie dlatego, że KSeF API blokuje CORS.
+- **PDF generowany lokalnie** – przez oficjalną bibliotekę [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) MF.
+- **ZIP tworzony lokalnie** – w pamięci przeglądarki, pobierany bezpośrednio na komputer.
 
 ## Ograniczenia
 
 - Jedna paczka obsługuje maksymalnie **50 faktur**.
-- Wymagany jest token KSeF oraz identyfikator kontekstu logowania (np. NIP firmy).
+- Wymagany jest token KSeF oraz identyfikator kontekstu logowania (NIP firmy lub inny typ kontekstu).
 
 ## Stack
 
-- **Frontend**: React + Vite + TypeScript
-- **Serwer proxy**: Node.js (Express backend, uruchamiany przez Docker Compose)
+- **Frontend**: React + Vite + TypeScript + Material UI
+- **Serwer proxy**: Node.js Express (uruchamiany przez Docker Compose)
 - **PDF**: [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) – vendored lokalnie
 - **Crypto**: jsrsasign (RSA-OAEP szyfrowanie tokena w przeglądarce)
+
+## Lokalny development (bez Dockera)
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Frontend: http://localhost:5173 · Proxy: http://localhost:3001
+
+## Struktura projektu
+
+```
+ksefast/
+├── frontend/src/
+│   ├── services/         ← komunikacja z KSeF przez proxy
+│   ├── hooks/            ← logika pobierania (TanStack Query)
+│   ├── lib/              ← crypto, QR, utils
+│   └── components/       ← UI (App, DownloadForm, QAPanel, ...)
+├── server/server.ts      ← proxy Express (bezstanowy, bez logowania)
+├── docs/openapi/         ← specyfikacje OpenAPI KSeF v2 (źródło prawdy)
+└── docker-compose.yml
+```
+
+## Contributing
+
+Masz pomysł lub znalazłeś błąd? Sprawdź [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+Jeśli odkryłeś lukę bezpieczeństwa, zapoznaj się z [SECURITY.md](SECURITY.md) — prosimy nie otwierać publicznych issues dla podatności.
+
+## Licencja
+
+[MIT](LICENSE) © 2026 Codelite House
+
+Vendored dependency: [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) (pakiet `@akmf/ksef-fe-invoice-converter`) – [MIT](frontend/vendor/ksef-pdf-generator/LICENSE) © 2025 CIRF

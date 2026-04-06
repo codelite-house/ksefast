@@ -1,0 +1,27 @@
+name: Propozycja usprawnienia
+description: Zaproponuj nową funkcję lub ulepszenie
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Jaki problem to rozwiązuje?
+      description: Opisz przypadek użycia lub ból, który chcesz wyeliminować.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proponowane rozwiązanie
+      description: Co miałoby się wydarzyć?
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Weryfikacja prywatności
+      description: KSeFast jest aplikacją privacy-first. Każda nowa funkcja musi spełniać poniższe warunki.
+      options:
+        - label: Funkcja nie wymaga przechowywania danych użytkownika ani tokenów na serwerze
+          required: true
+        - label: Funkcja nie wymaga zakładania zewnętrznych kont ani podawania dodatkowych kluczy API

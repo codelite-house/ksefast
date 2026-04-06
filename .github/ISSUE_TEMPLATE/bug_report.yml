@@ -1,0 +1,45 @@
+name: Zgłoszenie błędu
+description: Coś nie działa tak jak powinno
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Przed zgłoszeniem upewnij się, że korzystasz z najnowszej wersji (`docker compose pull && docker compose up`).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Co się stało?
+      description: Jasny opis błędu.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Kroki do odtworzenia
+      description: Jak odtworzyć błąd krok po kroku?
+      placeholder: |
+        1. Otwórz aplikację
+        2. Wypełnij pola ...
+        3. Kliknij ...
+        4. Pojawia się błąd
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Oczekiwane zachowanie
+      description: Co powinno się wydarzyć?
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Środowisko KSeF
+      description: Demo czy produkcja?
+      placeholder: "demo / produkcja"
+  - type: input
+    id: browser
+    attributes:
+      label: Przeglądarka i system operacyjny
+      placeholder: "np. Chrome 123 / Windows 11"

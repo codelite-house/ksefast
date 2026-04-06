@@ -107,15 +107,30 @@ Typy frontendowe są w `frontend/src/types.ts`, typy backendu są inline w plika
 
 ## Reguła changelog
 
-**Każda zmiana w kodzie dokonana przez agenta AI musi być odnotowana w `change_log.md`** (plik w root projektu).
-Format wpisu:
+**Każda zmiana w kodzie dokonana przez agenta AI musi być odnotowana w `CHANGELOG.md`** (plik w root projektu).
+
+Plik `change_log.md` nie istnieje – nie tworzyć go na nowo.
+
+Format zgodny z [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/). Wpisy pisane z perspektywy użytkownika, po polsku. Żadnych szczegółów CI/pipeline/infrastruktury.
+
+Dodaj zmianę do sekcji `## [Nieudostępnione]` na górze pliku, w odpowiedniej podsekcji:
 
 ```markdown
-## YYYY-MM-DD
+## [Nieudostępnione]
 
-### Tytuł zmiany
+### Dodano
 
-- co zmieniono i dlaczego
+- Nowa funkcja widoczna dla użytkownika
+
+### Zmieniono
+
+- Co się zmieniło w zachowaniu
+
+### Naprawiono
+
+- Co przestało działać i teraz działa
+
+### Usunięto
+
+- Co zostało usunięte
 ```
-
-Dodawaj wpis na górze pliku (najnowsze zmiany pierwsze).
