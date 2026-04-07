@@ -116,8 +116,8 @@ jobs:
     needs: [helm-release, version]
     runs-on: ubuntu-latest
     # This job requires INFRA_PAT secret (access to the private infrastructure repo).
-    # It is skipped automatically in forks where the secret is not available.
-    if: ${{ secrets.INFRA_PAT != '' }}
+    # It runs only in the upstream repo – forks skip it automatically.
+    if: github.repository == 'codelite-house/ksefast'
     env:
       VERSION: ${{ needs.version.outputs.new_version }}
     steps:
