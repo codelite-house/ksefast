@@ -96,7 +96,7 @@ jobs:
           helm push ksefast-frontend-${VERSION}.tgz oci://ghcr.io/codelite-house/helm
 
   tag-release:
-    needs: [infra-update, version]
+    needs: [helm-release, version]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -112,43 +112,4 @@ jobs:
           git tag ${VERSION}
           git push origin ${VERSION}
 
-  infra-update:
-    needs: [helm-release, version]
-    runs-on: ubuntu-latest
-    # This job requires INFRA_PAT secret (access to the private infrastructure repo).
-    # It runs only in the upstream repo – forks skip it automatically.
-    if: github.repository == 'codelite-house/ksefast'
-    env:
-      VERSION: ${{ needs.version.outputs.new_version }}
-    steps:
-      - name: Checkout infrastructure repo
-        uses: actions/checkout@v4
-        with:
-          repository: codelite-house/infrastructure
-          token: ${{ secrets.INFRA_PAT }}
-      - name: Update app.yaml chartVersion
-        run: |
-          set -euo pipefail
-          if [[ $GITHUB_REF == refs/heads/main ]]; then
-            DEPLOY_ENV=production
-          else
-            DEPLOY_ENV=staging
-          fi
-          echo "Deploy env: $DEPLOY_ENV, version: ${VERSION}"
-          grep -n "chartVersion" apps/$DEPLOY_ENV/ksefast-frontend/app.yaml || echo "WARNING: chartVersion not found in frontend app.yaml"
-          grep -n "chartVersion" apps/$DEPLOY_ENV/ksefast-backend/app.yaml  || echo "WARNING: chartVersion not found in backend app.yaml"
-          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" apps/$DEPLOY_ENV/ksefast-frontend/app.yaml
-          sed -i "s/chartVersion:.*/chartVersion: \"${VERSION}\"/" apps/$DEPLOY_ENV/ksefast-backend/app.yaml
-          git config user.name "automat@codelitehouse.com"
-          git config user.email "automat@codelitehouse.com"
-          git diff --stat
-          git add .
-          git commit -m "ci: update ksefast-frontend and ksefast-backend chartVersion to ${VERSION} [auto]" || echo "No changes to commit"
-          git push
-      - name: Add entry to updates.log
-        run: |
-          set -euo pipefail
-          echo "${{ github.event.head_commit.timestamp }}: Pipeline updated ksefast-frontend and ksefast-backend to ${VERSION}" >> updates.log
-          git add updates.log
-          git commit -m "ci: log update for ksefast ${VERSION}" || echo "No changes to commit"
-          git push
+
