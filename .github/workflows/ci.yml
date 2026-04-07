@@ -116,7 +116,7 @@ jobs:
           [ "$HTTP_STATUS" = "204" ] || { echo "Dispatch failed"; exit 1; }
 
   tag-release:
-    needs: [helm-release, version]
+    needs: [notify-infra, helm-release, version]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
