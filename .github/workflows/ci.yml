@@ -95,8 +95,25 @@ jobs:
           helm package helm/ksefast-frontend --version ${VERSION} --app-version ${VERSION}
           helm push ksefast-frontend-${VERSION}.tgz oci://ghcr.io/codelite-house/helm
 
+  notify-infra:
+    needs: [helm-release, version]
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.version.outputs.new_version }}
+    steps:
+      - name: Trigger infrastructure deploy
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" -X POST \
+            -H "Authorization: Bearer ${{ secrets.INFRA_DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Content-Type: application/json" \
+            https://api.github.com/repos/${{ secrets.INFRA_REPO }}/dispatches \
+            -d "{\"event_type\":\"ksefast-deploy\",\"client_payload\":{\"version\":\"${VERSION}\",\"sha\":\"${{ github.sha }}\"}}" \
+          | grep -q "^204$" || { echo "Dispatch failed"; exit 1; }
+
   tag-release:
     needs: [helm-release, version]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -111,5 +128,3 @@ jobs:
         run: |
           git tag ${VERSION}
           git push origin ${VERSION}
-
-
