@@ -103,13 +103,17 @@ jobs:
     steps:
       - name: Trigger infrastructure deploy
         run: |
-          curl -s -o /dev/null -w "%{http_code}" -X POST \
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Authorization: Bearer ${{ secrets.INFRA_DISPATCH_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
             https://api.github.com/repos/${{ secrets.INFRA_REPO }}/dispatches \
-            -d "{\"event_type\":\"ksefast-deploy\",\"client_payload\":{\"version\":\"${VERSION}\",\"sha\":\"${{ github.sha }}\"}}" \
-          | grep -q "^204$" || { echo "Dispatch failed"; exit 1; }
+            -d "{\"event_type\":\"ksefast-deploy\",\"client_payload\":{\"version\":\"${VERSION}\",\"sha\":\"${{ github.sha }}\"}}")
+          HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n-1)
+          echo "HTTP status: ${HTTP_STATUS}"
+          [ -n "$BODY" ] && echo "Response body: ${BODY}"
+          [ "$HTTP_STATUS" = "204" ] || { echo "Dispatch failed"; exit 1; }
 
   tag-release:
     needs: [helm-release, version]
