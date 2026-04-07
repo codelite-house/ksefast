@@ -107,7 +107,7 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.INFRA_PAT }}" \
             -H "Accept: application/vnd.github+json" \
             -H "Content-Type: application/json" \
-            https://api.github.com/repos/codelite-house/infrastructure/dispatches \
+            https://api.github.com/repos/${{ secrets.INFRA_REPO }}/dispatches \
             -d "{\"event_type\":\"ksefast-deploy\",\"client_payload\":{\"version\":\"${VERSION}\",\"sha\":\"${{ github.sha }}\"}}")
           HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)
