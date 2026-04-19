@@ -142,3 +142,14 @@ export interface DownloadedInvoice {
   metadata: InvoiceMetadata;
   xml: string;
 }
+
+export type ContactMessageType = "ContactForm" | "ProblemReport";
+
+export interface ContactSubmissionRequest {
+  name: string;
+  email: string;
+  message: string;
+  messageType: ContactMessageType;
+  source?: string;
+  additionalProperties?: Record<string, unknown>;
+}
