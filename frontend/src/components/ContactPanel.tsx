@@ -77,7 +77,7 @@ export default function ContactPanel() {
             Masz uwagi albo pytania?
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Wysylka idzie przez backend KSeFast, bez bezposredniego laczenia frontendu z Contact Service.
+            Zapraszamy do wypelnienia formularza.
           </Typography>
         </Box>
 

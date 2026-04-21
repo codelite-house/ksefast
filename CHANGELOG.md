@@ -19,6 +19,7 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 - `README.md` – przebudowany pod open source: badge licencja/release, diagram architektury, sekcje Contributing / Security / Licencja, instrukcja dev bez Dockera
 - Atrybucja vendora `@akmf/ksef-fe-invoice-converter` w README – dodano nazwę pakietu npm i rok copyright
+- Komunikat w panelu kontaktowym uproszczono do jasnego zaproszenia do wypelnienia formularza
 
 ### Usunięto
 
