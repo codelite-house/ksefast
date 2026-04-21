@@ -8,6 +8,7 @@ import AppHeader from "./components/AppHeader";
 import AppFooter from "./components/AppFooter";
 import DownloadForm from "./components/DownloadForm";
 import QAPanel from "./components/QAPanel";
+import ContactPanel from "./components/ContactPanel";
 
 function App() {
   return (
@@ -25,7 +26,10 @@ function App() {
             alignItems: "flex-start",
           }}
         >
-          <DownloadForm />
+          <Box sx={{ display: "grid", gap: 3 }}>
+            <DownloadForm />
+            <ContactPanel />
+          </Box>
           <QAPanel />
         </Box>
 

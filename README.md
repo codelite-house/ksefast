@@ -14,6 +14,7 @@ Pobierz faktury z KSeF (Krajowy System e-Faktur) jako paczkę ZIP – w formacie
 - pobiera listę faktur dla wskazanego miesiąca,
 - buduje paczkę ZIP z fakturami w formacie XML albo PDF **lokalnie w przeglądarce** – nic nie trafia na zewnętrzne serwery,
 - wszystkie dane są przetwarzane i niszczone natychmiast po pobraniu.
+- udostępnia formularz kontaktowy z dwoma typami wiadomości: "Zgłoś problem" i "kontakt z developerami".
 
 ## Wymagania
 
@@ -72,6 +73,18 @@ pnpm dev
 ```
 
 Frontend: http://localhost:5173 · Proxy: http://localhost:3001
+
+### Integracja z Contact Service
+
+Frontend wysyła formularz wyłącznie przez backend (`server/server.ts`), który przekazuje żądanie do Contact Service.
+
+Wymagane zmienne środowiskowe backendu:
+
+- `CONTACT_SERVICE_URL` (domyślnie `http://contact-service.devowiec.pl/api/v1/messages`)
+- `CONTACT_SERVICE_BEARER_TOKEN` (preferowane, JWT serwisowe)
+- `CONTACT_SERVICE_API_KEY` (fallback, gdy JWT nie jest dostępne)
+
+Backend wymaga co najmniej jednej formy autoryzacji (`CONTACT_SERVICE_BEARER_TOKEN` lub `CONTACT_SERVICE_API_KEY`).
 
 ## Struktura projektu
 

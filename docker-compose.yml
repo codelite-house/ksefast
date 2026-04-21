@@ -3,6 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend
+    environment:
+      PORT: ${PORT:-3001}
+      CONTACT_SERVICE_URL: ${CONTACT_SERVICE_URL:-http://contact-service.devowiec.pl/api/v1/messages}
+      CONTACT_SERVICE_BEARER_TOKEN: ${CONTACT_SERVICE_BEARER_TOKEN:-}
+      CONTACT_SERVICE_API_KEY: ${CONTACT_SERVICE_API_KEY:-}
     expose:
       - "3001"
     restart: unless-stopped

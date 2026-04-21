@@ -3,7 +3,8 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "start": "tsx server.ts"
+    "start": "tsx server.ts",
+    "test": "tsx --test server.test.ts"
   },
   "dependencies": {
     "express": "^4.21.2",
