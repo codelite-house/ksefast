@@ -44,11 +44,27 @@ spec:
             - name: http
               containerPort: {{ .Values.containerPort | default .Values.service.port }}
               protocol: TCP
-          {{- with .Values.env }}
+          {{- if or .Values.env .Values.envValueFrom }}
           env:
+            {{- with .Values.env }}
             {{- range $name, $value := . }}
             - name: {{ $name }}
               value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.envValueFrom }}
+            {{- range . }}
+            - name: {{ .name }}
+              valueFrom:
+                {{- if .secretKeyRef }}
+                secretKeyRef:
+                  name: {{ .secretKeyRef.name | quote }}
+                  key: {{ .secretKeyRef.key | quote }}
+                  {{- if hasKey .secretKeyRef "optional" }}
+                  optional: {{ .secretKeyRef.optional }}
+                  {{- end }}
+                {{- end }}
+            {{- end }}
             {{- end }}
           {{- end }}
           {{- with .Values.livenessProbe }}

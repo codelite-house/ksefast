@@ -14,12 +14,14 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 - `CONTRIBUTING.md` – wytyczne dla kontrybutorów po polsku
 - `SECURITY.md` – polityka bezpieczeństwa i zgłaszania luk po polsku
 - Szablony zgłoszeń GitHub Issues po polsku (błędy, propozycje funkcji)
+- W chartcie Helm backendu dodano obsługę zmiennych środowiskowych przez `valueFrom.secretKeyRef` (bez wpisywania kluczy jawnie w values)
 
 ### Zmieniono
 
 - `README.md` – przebudowany pod open source: badge licencja/release, diagram architektury, sekcje Contributing / Security / Licencja, instrukcja dev bez Dockera
 - Atrybucja vendora `@akmf/ksef-fe-invoice-converter` w README – dodano nazwę pakietu npm i rok copyright
 - Komunikat w panelu kontaktowym uproszczono do jasnego zaproszenia do wypelnienia formularza
+- Komunikaty bledow formularza kontaktowego uproszczono i ukryto techniczne szczegoly konfiguracji backendu
 
 ### Usunięto
 

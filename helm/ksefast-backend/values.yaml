@@ -59,6 +59,17 @@ service:
 # Port exposed by backend process inside container.
 containerPort: 3001
 
+# Static environment variables injected into container.
+env: {}
+
+# Environment variables populated from Kubernetes valueFrom sources.
+envValueFrom: []
+  # - name: CONTACT_SERVICE_API_KEY
+  #   secretKeyRef:
+  #     name: contact-service-backend-secrets
+  #     key: API_KEY
+  #     optional: false
+
 # -- Expose the service via gateway-api HTTPRoute
 # Requires Gateway API resources and suitable controller installed within the cluster
 # (see: https://gateway-api.sigs.k8s.io/guides/)

@@ -288,7 +288,10 @@ export function createApp() {
 
       res.status(201).json(payload);
     } catch (e) {
-      res.status(500).json({ message: (e as Error).message });
+      console.error("Contact form proxy error:", e);
+      res.status(500).json({
+        message: "Contact form is temporarily unavailable. Please try again later.",
+      });
     }
   });
 

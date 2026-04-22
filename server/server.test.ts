@@ -204,8 +204,7 @@ test("POST /api/contact/messages returns 500 when credentials are missing", asyn
 
     assert.equal(response.status, 500);
     assert.deepEqual(await response.json(), {
-      message:
-        "Missing contact service credentials. Set CONTACT_SERVICE_BEARER_TOKEN or CONTACT_SERVICE_API_KEY.",
+      message: "Contact form is temporarily unavailable. Please try again later.",
     });
   } finally {
     await new Promise<void>((resolve, reject) => {
