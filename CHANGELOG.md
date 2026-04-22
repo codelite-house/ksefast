@@ -22,6 +22,7 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 - Atrybucja vendora `@akmf/ksef-fe-invoice-converter` w README – dodano nazwę pakietu npm i rok copyright
 - Komunikat w panelu kontaktowym uproszczono do jasnego zaproszenia do wypelnienia formularza
 - Komunikaty bledow formularza kontaktowego uproszczono i ukryto techniczne szczegoly konfiguracji backendu
+- Przywrócono polskie znaki w komunikatach formularza kontaktowego (etykiety, przycisk, sukces i błędy)
 
 ### Usunięto
 

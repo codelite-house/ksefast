@@ -16,7 +16,7 @@ type SubmitState = "idle" | "sending" | "success" | "error";
 
 const MESSAGE_TYPES: Array<{ value: ContactMessageType; label: string }> = [
   { value: "ProblemReport", label: "Zgłoś problem" },
-  { value: "ContactForm", label: "kontakt z developerami" },
+  { value: "ContactForm", label: "Kontakt z deweloperami" },
 ];
 
 export default function ContactPanel() {
@@ -65,7 +65,7 @@ export default function ContactPanel() {
       setMessage("");
     } catch (error) {
       setState("error");
-      setErrorMessage(error instanceof Error ? error.message : "Nie udalo sie wyslac wiadomosci.");
+      setErrorMessage(error instanceof Error ? error.message : "Nie udało się wysłać wiadomości.");
     }
   }
 
@@ -77,14 +77,14 @@ export default function ContactPanel() {
             Masz uwagi albo pytania?
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Zapraszamy do wypelnienia formularza.
+            Zapraszamy do wypełnienia formularza.
           </Typography>
         </Box>
 
         <Box component="form" onSubmit={onSubmit} sx={{ display: "grid", gap: 2 }}>
           <TextField
             select
-            label="Typ wiadomosci"
+            label="Typ wiadomości"
             value={messageType}
             onChange={onChangeMessageType}
             fullWidth
@@ -97,7 +97,7 @@ export default function ContactPanel() {
           </TextField>
 
           <TextField
-            label="Imie i nazwisko"
+            label="Imię i nazwisko"
             value={name}
             onChange={onChangeName}
             required
@@ -114,7 +114,7 @@ export default function ContactPanel() {
           />
 
           <TextField
-            label="Wiadomosc"
+            label="Wiadomość"
             value={message}
             onChange={onChangeMessage}
             required
@@ -130,20 +130,20 @@ export default function ContactPanel() {
             disabled={state === "sending"}
             sx={{ py: 1.2 }}
           >
-            {state === "sending" ? "Wysylanie..." : "Wyslij wiadomosc"}
+            {state === "sending" ? "Wysyłanie..." : "Wyślij wiadomość"}
           </Button>
         </Box>
 
         {state === "success" && (
           <Alert severity="success" variant="outlined">
-            Twoja wiadomosc zostala wyslana.
+            Twoja wiadomość została wysłana.
           </Alert>
         )}
 
         {state === "error" && (
           <Alert severity="error">
-            <AlertTitle>Nie udalo sie wyslac wiadomosci</AlertTitle>
-            {errorMessage ?? "Sprobuj ponownie za chwile."}
+            <AlertTitle>Nie udało się wysłać wiadomości</AlertTitle>
+            {errorMessage ?? "Spróbuj ponownie za chwilę."}
           </Alert>
         )}
       </Stack>
