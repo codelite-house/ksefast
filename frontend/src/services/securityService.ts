@@ -6,10 +6,9 @@ import type { EnvironmentName, PublicCertificateInfo } from "../types";
  * Zwraca listę certyfikatów klucza publicznego KSeF.
  * Certyfikat z usage "KsefTokenEncryption" służy do szyfrowania tokena RSA-OAEP.
  */
-export function getPublicCertificates(
+export const getPublicCertificates = (
   environment: EnvironmentName,
-): Promise<PublicCertificateInfo[]> {
-  return apiFetch<PublicCertificateInfo[]>(
+): Promise<PublicCertificateInfo[]> =>
+  apiFetch<PublicCertificateInfo[]>(
     `/security/certificates?environment=${environment}`,
   );
-}

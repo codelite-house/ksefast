@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
 
-export default function AppFooter() {
+const AppFooter = () => {
   return (
     <Box
       component="footer"
@@ -34,4 +34,6 @@ export default function AppFooter() {
       </Typography>
     </Box>
   );
-}
+};
+
+export default AppFooter;

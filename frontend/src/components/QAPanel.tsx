@@ -103,7 +103,7 @@ const faqItems = [
   },
 ];
 
-function ListPanel({
+const ListPanel = ({
   title,
   items,
   ordered = false,
@@ -111,7 +111,7 @@ function ListPanel({
   title: string;
   items: string[];
   ordered?: boolean;
-}) {
+}) => {
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="subtitle2" color="secondary" gutterBottom>
@@ -140,9 +140,9 @@ function ListPanel({
       </Box>
     </Paper>
   );
-}
+};
 
-export default function QAPanel() {
+const QAPanel = () => {
   const faqStructuredData = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -340,4 +340,6 @@ export default function QAPanel() {
       />
     </Stack>
   );
-}
+};
+
+export default QAPanel;

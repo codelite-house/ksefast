@@ -1,5 +1,5 @@
 // Bardziej uniwersalny parser: szuka <KodKreskowy>, <kodKreskowy>, <Barcode>, <barcode>, <VerificationCode>, <verificationCode>
-export function extractAnyVerificationCode(xml: string): string | null {
+export const extractAnyVerificationCode = (xml: string): string | null => {
   // Szukaj tylko wartości z tagów KodKreskowy, kodKreskowy, VerificationCode, verificationCode
   const tags = ["KodKreskowy", "kodKreskowy", "VerificationCode", "verificationCode"];
   for (const tag of tags) {
@@ -10,4 +10,4 @@ export function extractAnyVerificationCode(xml: string): string | null {
     }
   }
   return null;
-}
+};

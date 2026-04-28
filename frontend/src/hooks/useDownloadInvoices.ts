@@ -18,11 +18,11 @@ const MAX_INVOICES_PER_EXPORT = 50;
 const AUTH_POLL_MAX_ATTEMPTS = 20;
 const AUTH_POLL_INTERVAL_MS = 1000;
 
-async function pollUntilAuthorized(
+const pollUntilAuthorized = async (
   environment: DownloadInvoicesRequest["environment"],
   referenceNumber: string,
   authToken: string,
-): Promise<void> {
+): Promise<void> => {
   for (let attempt = 0; attempt < AUTH_POLL_MAX_ATTEMPTS; attempt++) {
     const result = await getAuthStatus(environment, referenceNumber, authToken);
 
@@ -49,7 +49,7 @@ async function pollUntilAuthorized(
   }
 
   throw new Error("KSeF authentication timed out after 20 attempts.");
-}
+};
 
 export interface DownloadResult {
   blob: Blob;
@@ -62,8 +62,8 @@ export interface DownloadResult {
  * Sekwencja: certyfikaty → challenge → RSA encrypt → init auth → polling →
  *            redeem → metadane → pobieranie XMLi → ZIP/PDF archive.
  */
-export function useDownloadInvoices() {
-  return useMutation<DownloadResult, Error, DownloadInvoicesRequest>({
+export const useDownloadInvoices = () =>
+  useMutation<DownloadResult, Error, DownloadInvoicesRequest>({
     mutationFn: async (request) => {
       const { environment, token } = request;
       const normalizedToken = token.trim();
@@ -178,4 +178,3 @@ export function useDownloadInvoices() {
       };
     },
   });
-}

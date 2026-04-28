@@ -1,7 +1,7 @@
 import { KsefApiError, apiFetch } from "./apiClient";
 import type { ContactSubmissionRequest } from "../types";
 
-function mapContactError(error: unknown): Error {
+const mapContactError = (error: unknown): Error => {
   if (!(error instanceof KsefApiError)) {
     return new Error("Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę.");
   }
@@ -19,9 +19,9 @@ function mapContactError(error: unknown): Error {
   }
 
   return new Error(error.message || "Nie udało się wysłać wiadomości. Spróbuj ponownie za chwilę.");
-}
+};
 
-export async function submitContactMessage(body: ContactSubmissionRequest): Promise<void> {
+export const submitContactMessage = async (body: ContactSubmissionRequest): Promise<void> => {
   try {
     await apiFetch<void>("/contact/messages", {
       method: "POST",
@@ -31,4 +31,4 @@ export async function submitContactMessage(body: ContactSubmissionRequest): Prom
   } catch (error) {
     throw mapContactError(error);
   }
-}
+};

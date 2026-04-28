@@ -9,14 +9,14 @@ import type {
  * POST /invoices/metadata  (proxy → POST /invoices/query/metadata w KSeF v2)
  * Zapytanie o metadane faktur z paginacją.
  */
-export function queryInvoiceMetadata(
+export const queryInvoiceMetadata = (
   environment: EnvironmentName,
   accessToken: string,
   filters: InvoiceQueryFilters,
   pageOffset = 0,
   pageSize = 50,
-): Promise<QueryInvoicesResponse> {
-  return apiFetch<QueryInvoicesResponse>(
+): Promise<QueryInvoicesResponse> =>
+  apiFetch<QueryInvoicesResponse>(
     `/invoices/metadata?environment=${environment}&pageOffset=${pageOffset}&pageSize=${pageSize}`,
     {
       method: "POST",
@@ -27,19 +27,17 @@ export function queryInvoiceMetadata(
       body: JSON.stringify(filters),
     },
   );
-}
 
 /**
  * GET /invoices/download  (proxy → GET /invoices/ksef/{ksefNumber} w KSeF v2)
  * Pobierz XML faktury po numerze KSeF.
  */
-export function downloadInvoiceXml(
+export const downloadInvoiceXml = (
   environment: EnvironmentName,
   accessToken: string,
   ksefNumber: string,
-): Promise<string> {
-  return apiFetch<string>(
+): Promise<string> =>
+  apiFetch<string>(
     `/invoices/download?environment=${environment}&ksefNumber=${encodeURIComponent(ksefNumber)}`,
     { headers: { Authorization: `Bearer ${accessToken}` } },
   );
-}

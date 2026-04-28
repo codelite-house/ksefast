@@ -19,7 +19,7 @@ export interface MonthOption {
   dateTo: string;
 }
 
-function generateMonthLabels(): MonthOption[] {
+const generateMonthLabels = (): MonthOption[] => {
   const months: MonthOption[] = [];
   const now = new Date();
 
@@ -35,7 +35,7 @@ function generateMonthLabels(): MonthOption[] {
   }
 
   return months;
-}
+};
 
 export const monthLabels = generateMonthLabels();
 export const defaultMonth = monthLabels[1];

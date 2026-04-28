@@ -1,14 +1,14 @@
 /**
  * Reads ASN.1 DER length at offset. Returns [length, nextOffset].
  */
-function readDerLength(buf: Uint8Array, offset: number): [number, number] {
+const readDerLength = (buf: Uint8Array, offset: number): [number, number] => {
   const first = buf[offset];
   if (first < 0x80) return [first, offset + 1];
   const numBytes = first & 0x7f;
   let len = 0;
   for (let i = 1; i <= numBytes; i++) len = len * 256 + buf[offset + i];
   return [len, offset + 1 + numBytes];
-}
+};
 
 /**
  * Extracts SubjectPublicKeyInfo (SPKI) from a DER-encoded X.509 certificate.
@@ -27,7 +27,7 @@ function readDerLength(buf: Uint8Array, offset: number): [number, number] {
  *     SEQUENCE signatureAlgorithm
  *     BIT STRING signatureValue
  */
-function extractSpkiFromCertDer(certDer: Uint8Array): Uint8Array {
+const extractSpkiFromCertDer = (certDer: Uint8Array): Uint8Array => {
   let pos = 0;
 
   // Certificate SEQUENCE
@@ -60,7 +60,7 @@ function extractSpkiFromCertDer(certDer: Uint8Array): Uint8Array {
   const [spkiContentLen, spkiContentStart] = readDerLength(certDer, pos);
 
   return certDer.slice(spkiStart, spkiContentStart + spkiContentLen);
-}
+};
 
 /**
  * Szyfrowanie tokena KSeF w przeglądarce algorytmem RSA-OAEP SHA-256.
@@ -72,11 +72,11 @@ function extractSpkiFromCertDer(certDer: Uint8Array): Uint8Array {
  *
  * Token NIGDY nie opuszcza przeglądarki w formie plaintext.
  */
-export async function encryptTokenWithChallenge(
+export const encryptTokenWithChallenge = async (
   token: string,
   timestampMs: number,
   certificateBase64: string,
-): Promise<string> {
+): Promise<string> => {
   // 1. Dekoduj certyfikat DER (base64 → bytes)
   const certBytes = Uint8Array.from(atob(certificateBase64), (c) =>
     c.charCodeAt(0),
@@ -109,4 +109,4 @@ export async function encryptTokenWithChallenge(
 
   // 5. Zwróć zaszyfrowany payload jako Base64
   return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
-}
+};

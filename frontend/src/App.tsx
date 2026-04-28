@@ -10,7 +10,7 @@ import DownloadForm from "./components/DownloadForm";
 import QAPanel from "./components/QAPanel";
 import ContactPanel from "./components/ContactPanel";
 
-function App() {
+const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -37,6 +37,6 @@ function App() {
       </Container>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

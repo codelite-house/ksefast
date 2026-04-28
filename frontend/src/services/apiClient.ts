@@ -11,12 +11,12 @@ export class KsefApiError extends Error {
   }
 }
 
-async function parseResponse(response: Response): Promise<unknown> {
+const parseResponse = async (response: Response): Promise<unknown> => {
   const ct = response.headers.get("content-type") ?? "";
   return ct.includes("application/json") ? response.json() : response.text();
-}
+};
 
-async function assertOk(response: Response, fallback: string): Promise<void> {
+const assertOk = async (response: Response, fallback: string): Promise<void> => {
   if (response.ok) return;
 
   const payload = await parseResponse(response);
@@ -34,12 +34,12 @@ async function assertOk(response: Response, fallback: string): Promise<void> {
   }
 
   throw new KsefApiError(String(payload || fallback), response.status, payload);
-}
+};
 
-export async function apiFetch<T>(
+export const apiFetch = async <T>(
   path: string,
   init?: RequestInit,
-): Promise<T> {
+): Promise<T> => {
   const response = await fetch(`${API_BASE}${path}`, init);
   await assertOk(response, `Request failed: ${path}`);
 
@@ -49,4 +49,4 @@ export async function apiFetch<T>(
   }
 
   return response.text() as unknown as Promise<T>;
-}
+};

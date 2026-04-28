@@ -63,7 +63,7 @@ const CONTEXT_META: Record<
   },
 };
 
-export default function DownloadForm() {
+const DownloadForm = () => {
   const [token, setToken] = useState("");
   const [contextType, setContextType] = useState<
     "Nip" | "InternalId" | "NipVatUe" | "PeppolId"
@@ -105,7 +105,7 @@ export default function DownloadForm() {
     }
   }, [isSuccess, resetDownload]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLastInvoiceCount(null);
     setContextValueTouched(true);
@@ -136,7 +136,7 @@ export default function DownloadForm() {
         URL.revokeObjectURL(objectUrl);
       },
     });
-  }
+  };
 
   return (
     <Paper sx={{ p: 4 }}>
@@ -398,4 +398,6 @@ export default function DownloadForm() {
       </Box>
     </Paper>
   );
-}
+};
+
+export default DownloadForm;

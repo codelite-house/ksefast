@@ -7,10 +7,9 @@ import type { EnvironmentName } from "../types";
  * Dane są cachowane przez 5 minut — certyfikaty zmieniają się rzadko.
  * Używany do pre-fetch przed formularzem i do szyfrowania tokena.
  */
-export function useCertificates(environment: EnvironmentName) {
-  return useQuery({
+export const useCertificates = (environment: EnvironmentName) =>
+  useQuery({
     queryKey: ["ksef", "certificates", environment],
     queryFn: () => getPublicCertificates(environment),
     staleTime: 5 * 60 * 1000,
   });
-}

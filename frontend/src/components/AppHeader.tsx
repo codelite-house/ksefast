@@ -2,7 +2,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import logo from "../images/logo.png";
 
-export default function AppHeader() {
+const AppHeader = () => {
   return (
     <Box
       component="header"
@@ -51,4 +51,6 @@ export default function AppHeader() {
       </Box>
     </Box>
   );
-}
+};
+
+export default AppHeader;

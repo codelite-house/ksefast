@@ -7,11 +7,11 @@
  * @param issueDate Data wystawienia faktury (string YYYY-MM-DD lub Date)
  * @returns Link QR w oficjalnym formacie
  */
-export async function buildKsefQrUrl(
+export const buildKsefQrUrl = async (
   xml: string | Uint8Array,
   nip: string,
   issueDate: string | Date
-): Promise<string> {
+): Promise<string> => {
   // NIP: tylko cyfry, 10 znaków
   const cleanNip = nip.replace(/\D/g, '').padStart(10, '0');
   // Data: DD-MM-YYYY
@@ -53,4 +53,4 @@ export async function buildKsefQrUrl(
   const b64url = b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
   return `https://qr.ksef.mf.gov.pl/invoice/${cleanNip}/${formattedDate}/${b64url}`;
-}
+};

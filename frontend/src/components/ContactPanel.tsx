@@ -1,4 +1,3 @@
-import { ChangeEvent, FormEvent, useState } from "react";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
@@ -9,65 +8,15 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import { submitContactMessage } from "../services/contactService";
-import type { ContactMessageType } from "../types";
+import { useContactForm } from "../hooks/useContactForm";
 
-type SubmitState = "idle" | "sending" | "success" | "error";
-
-const MESSAGE_TYPES: Array<{ value: ContactMessageType; label: string }> = [
+const MESSAGE_TYPES = [
   { value: "ProblemReport", label: "Zgłoś problem" },
   { value: "ContactForm", label: "Kontakt z deweloperami" },
-];
+] as const;
 
-export default function ContactPanel() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState<ContactMessageType>("ProblemReport");
-  const [state, setState] = useState<SubmitState>("idle");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  function onChangeMessageType(event: ChangeEvent<HTMLInputElement>) {
-    setMessageType(event.target.value as ContactMessageType);
-  }
-
-  function onChangeName(event: ChangeEvent<HTMLInputElement>) {
-    setName(event.target.value);
-  }
-
-  function onChangeEmail(event: ChangeEvent<HTMLInputElement>) {
-    setEmail(event.target.value);
-  }
-
-  function onChangeMessage(event: ChangeEvent<HTMLInputElement>) {
-    setMessage(event.target.value);
-  }
-
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setState("sending");
-    setErrorMessage(null);
-
-    try {
-      await submitContactMessage({
-        name,
-        email,
-        message,
-        messageType,
-        source: "ksefast-web",
-        additionalProperties: {
-          page: window.location.pathname,
-          userAgent: navigator.userAgent,
-        },
-      });
-
-      setState("success");
-      setMessage("");
-    } catch (error) {
-      setState("error");
-      setErrorMessage(error instanceof Error ? error.message : "Nie udało się wysłać wiadomości.");
-    }
-  }
+const ContactPanel = () => {
+  const { fields, handlers, onSubmit, isPending, isSuccess, isError, error } = useContactForm();
 
   return (
     <Paper sx={{ p: 3.5 }}>
@@ -85,8 +34,8 @@ export default function ContactPanel() {
           <TextField
             select
             label="Typ wiadomości"
-            value={messageType}
-            onChange={onChangeMessageType}
+            value={fields.messageType}
+            onChange={handlers.onChangeMessageType}
             fullWidth
           >
             {MESSAGE_TYPES.map((type) => (
@@ -98,8 +47,8 @@ export default function ContactPanel() {
 
           <TextField
             label="Imię i nazwisko"
-            value={name}
-            onChange={onChangeName}
+            value={fields.name}
+            onChange={handlers.onChangeName}
             required
             fullWidth
           />
@@ -107,16 +56,16 @@ export default function ContactPanel() {
           <TextField
             label="Adres e-mail"
             type="email"
-            value={email}
-            onChange={onChangeEmail}
+            value={fields.email}
+            onChange={handlers.onChangeEmail}
             required
             fullWidth
           />
 
           <TextField
             label="Wiadomość"
-            value={message}
-            onChange={onChangeMessage}
+            value={fields.message}
+            onChange={handlers.onChangeMessage}
             required
             multiline
             minRows={4}
@@ -127,26 +76,28 @@ export default function ContactPanel() {
             type="submit"
             variant="contained"
             color="secondary"
-            disabled={state === "sending"}
+            disabled={isPending}
             sx={{ py: 1.2 }}
           >
-            {state === "sending" ? "Wysyłanie..." : "Wyślij wiadomość"}
+            {isPending ? "Wysyłanie..." : "Wyślij wiadomość"}
           </Button>
         </Box>
 
-        {state === "success" && (
+        {isSuccess && (
           <Alert severity="success" variant="outlined">
             Twoja wiadomość została wysłana.
           </Alert>
         )}
 
-        {state === "error" && (
+        {isError && (
           <Alert severity="error">
             <AlertTitle>Nie udało się wysłać wiadomości</AlertTitle>
-            {errorMessage ?? "Spróbuj ponownie za chwilę."}
+            {error instanceof Error ? error.message : "Spróbuj ponownie za chwilę."}
           </Alert>
         )}
       </Stack>
     </Paper>
   );
-}
+};
+
+export default ContactPanel;
