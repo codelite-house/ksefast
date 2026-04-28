@@ -14,6 +14,47 @@ const CORS_HEADERS: Record<string, string> = {
 
 type ContactMessageType = "ContactForm" | "ProblemReport";
 
+interface M2MTokenCache {
+  token: string;
+  expiresAt: number;
+}
+
+let m2mTokenCache: M2MTokenCache | null = null;
+
+async function getM2MToken(): Promise<string> {
+  if (m2mTokenCache && Date.now() < m2mTokenCache.expiresAt - 30_000) {
+    return m2mTokenCache.token;
+  }
+
+  const authority = process.env.ZITADEL_AUTHORITY?.trim();
+  const clientId = process.env.ZITADEL_CLIENT_ID?.trim();
+  const clientSecret = process.env.ZITADEL_CLIENT_SECRET?.trim();
+
+  if (!authority || !clientId || !clientSecret) {
+    throw new Error("Missing ZITADEL_AUTHORITY, ZITADEL_CLIENT_ID or ZITADEL_CLIENT_SECRET");
+  }
+
+  const response = await fetch(`${authority}/oauth/v2/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: clientId,
+      client_secret: clientSecret,
+      scope: "openid",
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Zitadel token fetch failed (${response.status}): ${body}`);
+  }
+
+  const data = await response.json() as { access_token: string; expires_in: number };
+  m2mTokenCache = { token: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
+  return m2mTokenCache.token;
+}
+
 interface ContactMessageBody {
   name?: string;
   email?: string;
@@ -39,10 +80,8 @@ function resolveContactServiceUrl(): string {
   return fromEnv || "http://contact-service.devowiec.pl/api/v1/messages";
 }
 
-function buildContactServiceHeaders(): Record<string, string> {
+async function buildContactServiceHeaders(): Promise<Record<string, string>> {
   const bearer = process.env.CONTACT_SERVICE_BEARER_TOKEN?.trim();
-  const apiKey = process.env.CONTACT_SERVICE_API_KEY?.trim();
-
   if (bearer) {
     return {
       Authorization: bearer.startsWith("Bearer ") ? bearer : `Bearer ${bearer}`,
@@ -50,16 +89,8 @@ function buildContactServiceHeaders(): Record<string, string> {
     };
   }
 
-  if (apiKey) {
-    return {
-      "X-Api-Key": apiKey,
-      "Content-Type": "application/json",
-    };
-  }
-
-  throw new Error(
-    "Missing contact service credentials. Set CONTACT_SERVICE_BEARER_TOKEN or CONTACT_SERVICE_API_KEY.",
-  );
+  const token = await getM2MToken();
+  return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
 
 async function proxy(
@@ -258,7 +289,7 @@ export function createApp() {
     }
 
     try {
-      const headers = buildContactServiceHeaders();
+      const headers = await buildContactServiceHeaders();
       const upstream = await fetch(resolveContactServiceUrl(), {
         method: "POST",
         headers,
