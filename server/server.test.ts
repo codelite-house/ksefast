@@ -4,24 +4,19 @@ import { AddressInfo } from "node:net";
 import { createApp } from "./server";
 
 const originalFetch = globalThis.fetch;
-const originalApiKey = process.env.CONTACT_SERVICE_API_KEY;
 const originalBearer = process.env.CONTACT_SERVICE_BEARER_TOKEN;
 const originalContactServiceUrl = process.env.CONTACT_SERVICE_URL;
 
 beforeEach(() => {
   delete process.env.CONTACT_SERVICE_BEARER_TOKEN;
-  delete process.env.CONTACT_SERVICE_API_KEY;
+  delete process.env.ZITADEL_AUTHORITY;
+  delete process.env.ZITADEL_CLIENT_ID;
+  delete process.env.ZITADEL_CLIENT_SECRET;
   process.env.CONTACT_SERVICE_URL = "http://contact-service.example/api/v1/messages";
 });
 
 after(() => {
   globalThis.fetch = originalFetch;
-
-  if (originalApiKey === undefined) {
-    delete process.env.CONTACT_SERVICE_API_KEY;
-  } else {
-    process.env.CONTACT_SERVICE_API_KEY = originalApiKey;
-  }
 
   if (originalBearer === undefined) {
     delete process.env.CONTACT_SERVICE_BEARER_TOKEN;
@@ -37,7 +32,7 @@ after(() => {
 });
 
 test("POST /api/contact/messages forwards payload to contact service", async () => {
-  process.env.CONTACT_SERVICE_API_KEY = "test-api-key";
+  process.env.CONTACT_SERVICE_BEARER_TOKEN = "test-bearer-token";
 
   const app = createApp();
   let capturedRequest: Request | undefined;
@@ -82,7 +77,7 @@ test("POST /api/contact/messages forwards payload to contact service", async () 
     assert.ok(capturedRequest);
     assert.equal(capturedRequest.url, "http://contact-service.example/api/v1/messages");
     assert.equal(capturedRequest.method, "POST");
-    assert.equal(capturedRequest.headers.get("x-api-key"), "test-api-key");
+    assert.equal(capturedRequest.headers.get("authorization"), "Bearer test-bearer-token");
 
     const forwardedBody = await capturedRequest.json();
     assert.deepEqual(forwardedBody, {
@@ -154,7 +149,6 @@ test("POST /api/contact/messages uses bearer token when configured", async () =>
 
     assert.ok(capturedRequest);
     assert.equal(capturedRequest.headers.get("authorization"), "Bearer jwt-token-123");
-    assert.equal(capturedRequest.headers.get("x-api-key"), null);
 
     const forwardedBody = await capturedRequest.json();
     assert.deepEqual(forwardedBody, {
