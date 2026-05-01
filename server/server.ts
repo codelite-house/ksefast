@@ -46,7 +46,7 @@ async function getM2MToken(): Promise<string> {
     },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      scope: "openid",
+      scope: "openid urn:zitadel:iam:org:project:id:370826484215972048:aud",
     }),
   });
 
