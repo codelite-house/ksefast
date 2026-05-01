@@ -304,7 +304,7 @@ export function createApp() {
           email: body.email.trim(),
           message: body.message.trim(),
           source: body.source?.trim() || "ksefast",
-          messageType: body.messageType,
+          messageType: body.messageType === "ContactForm" ? 0 : 1,
           additionalProperties: body.additionalProperties ?? {},
         }),
       });
