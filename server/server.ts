@@ -30,6 +30,10 @@ async function getM2MToken(): Promise<string> {
   const clientId = process.env.ZITADEL_CLIENT_ID?.trim();
   const clientSecret = process.env.ZITADEL_CLIENT_SECRET?.trim();
 
+  console.log(
+    `[M2M] token request — authority=${authority ?? "(unset)"} clientId=${clientId ?? "(unset)"} secret=${clientSecret ? `[SET len=${clientSecret.length} prefix=${clientSecret.slice(0, 6)}]` : "(unset)"}`,
+  );
+
   if (!authority || !clientId || !clientSecret) {
     throw new Error("Missing ZITADEL_AUTHORITY, ZITADEL_CLIENT_ID or ZITADEL_CLIENT_SECRET");
   }
@@ -48,6 +52,7 @@ async function getM2MToken(): Promise<string> {
 
   if (!response.ok) {
     const body = await response.text();
+    console.error(`[M2M] token fetch FAILED (${response.status}): ${body}`);
     throw new Error(`Zitadel token fetch failed (${response.status}): ${body}`);
   }
 
@@ -334,6 +339,12 @@ export const app = createApp();
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const PORT = Number(process.env.PORT ?? 3001);
+  const clientId = process.env.ZITADEL_CLIENT_ID?.trim();
+  const clientSecret = process.env.ZITADEL_CLIENT_SECRET?.trim();
+  console.log(`[startup] ZITADEL_AUTHORITY=${process.env.ZITADEL_AUTHORITY ?? "(unset)"}`);
+  console.log(`[startup] ZITADEL_CLIENT_ID=${clientId ?? "(unset)"}`);
+  console.log(`[startup] ZITADEL_CLIENT_SECRET=${clientSecret ? `[SET len=${clientSecret.length} prefix=${clientSecret.slice(0, 6)}]` : "(unset)"}`);
+  console.log(`[startup] CONTACT_SERVICE_URL=${process.env.CONTACT_SERVICE_URL ?? "(unset, default used)"}`);
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`KSeFast proxy listening on http://0.0.0.0:${PORT}`);
   });
