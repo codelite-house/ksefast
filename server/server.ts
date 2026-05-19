@@ -26,27 +26,41 @@ async function getM2MToken(): Promise<string> {
     return m2mTokenCache.token;
   }
 
-  const authority = process.env.ZITADEL_AUTHORITY?.trim();
-  const clientId = process.env.ZITADEL_CLIENT_ID?.trim();
-  const clientSecret = process.env.ZITADEL_CLIENT_SECRET?.trim();
+  const authority         = process.env.ZITADEL_AUTHORITY?.trim();
+  const internalAuthority = process.env.ZITADEL_INTERNAL_AUTHORITY?.trim();
+  const clientId          = process.env.ZITADEL_CLIENT_ID?.trim();
+  const clientSecret      = process.env.ZITADEL_CLIENT_SECRET?.trim();
+  const projectId         = process.env.CONTACT_SERVICE_PROJECT_ID?.trim();
 
   console.log(
-    `[M2M] token request — authority=${authority ?? "(unset)"} clientId=${clientId ?? "(unset)"} secret=${clientSecret ? `[SET len=${clientSecret.length} prefix=${clientSecret.slice(0, 6)}]` : "(unset)"}`,
+    `[M2M] token request — authority=${authority ?? "(unset)"} internal=${internalAuthority ?? "(unset)"} clientId=${clientId ?? "(unset)"} secret=${clientSecret ? `[SET len=${clientSecret.length} prefix=${clientSecret.slice(0, 6)}]` : "(unset)"}`,
   );
 
   if (!authority || !clientId || !clientSecret) {
     throw new Error("Missing ZITADEL_AUTHORITY, ZITADEL_CLIENT_ID or ZITADEL_CLIENT_SECRET");
   }
+  if (!projectId) {
+    throw new Error("Missing CONTACT_SERVICE_PROJECT_ID");
+  }
 
-  const response = await fetch(`${authority}/oauth/v2/token`, {
+  // Use internal cluster URL to avoid hairpin NAT (K3s/Flannel doesn't route
+  // external IPs back to cluster services). Host header must stay as the external
+  // hostname so Zitadel's virtual-host routing recognises the request.
+  const tokenBase = internalAuthority ?? authority;
+  const extraHeaders: Record<string, string> = internalAuthority
+    ? { Host: new URL(authority).hostname }
+    : {};
+
+  const response = await fetch(`${tokenBase}/oauth/v2/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization: `Basic ${Buffer.from(`${encodeURIComponent(clientId)}:${encodeURIComponent(clientSecret)}`).toString("base64")}`,
+      ...extraHeaders,
     },
     body: new URLSearchParams({
       grant_type: "client_credentials",
-      scope: "openid urn:zitadel:iam:org:project:id:370826484215972048:aud",
+      scope: `openid urn:zitadel:iam:org:project:id:${projectId}:aud`,
     }),
   });
 
