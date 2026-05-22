@@ -136,3 +136,16 @@ jobs:
         run: |
           git tag ${VERSION}
           git push origin ${VERSION}
+
+  notify-discord:
+    name: Notify Discord on failure
+    runs-on: ubuntu-latest
+    needs: [version, build-test-push, helm-release, notify-infra, tag-release]
+    if: failure()
+    steps:
+      - name: Discord notification
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "❌ Build failed: **${{ github.workflow }}** [#${{ github.run_number }}] in `${{ github.repository }}` on `${{ github.ref_name }}` — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
