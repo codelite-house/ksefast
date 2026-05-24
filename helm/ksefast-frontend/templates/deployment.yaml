@@ -13,10 +13,11 @@ spec:
       {{- include "ksefast-frontend.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
       annotations:
+        reloader.stakater.com/auto: "true"
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "ksefast-frontend.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
