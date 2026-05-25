@@ -148,4 +148,4 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
-          args: "❌ Build failed: **${{ github.workflow }}** [#${{ github.run_number }}] in `${{ github.repository }}` on `${{ github.ref_name }}` — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          args: "❌ Build failed: **${{ github.workflow }}** [#${{ github.run_number }}] in `${{ github.repository }}` on `${{ github.ref_name }}` by **${{ github.actor }}** — ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
