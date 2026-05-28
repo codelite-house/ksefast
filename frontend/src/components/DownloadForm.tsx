@@ -179,9 +179,8 @@ const DownloadForm = () => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1 }}>
-                <span role="img" aria-label="Bezpieczne pole tokenu">
-                  🔒
-                </span>
+                {/* Decorative lock icon — field label provides the accessible name */}
+                <span aria-hidden="true">🔒</span>
               </InputAdornment>
             ),
           }}

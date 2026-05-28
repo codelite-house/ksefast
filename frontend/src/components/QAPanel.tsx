@@ -334,6 +334,10 @@ const QAPanel = () => {
           ))}
         </Stack>
       </Paper>
+      {/* Safe: faqStructuredData is a static, hardcoded JS object serialized via
+          JSON.stringify — no user input or external data ever reaches this value.
+          dangerouslySetInnerHTML is the only correct way to inject JSON-LD structured
+          data (SEO) into a <script> tag in React. */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
