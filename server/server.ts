@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import { pathToFileURL } from "url";
+import log from "./logger.js";
 
 const KSEF_BASE_URLS: Record<string, string> = {
   demo: "https://api-test.ksef.mf.gov.pl/v2",
@@ -32,9 +33,12 @@ async function getM2MToken(): Promise<string> {
   const clientSecret      = process.env.ZITADEL_CLIENT_SECRET?.trim();
   const projectId         = process.env.CONTACT_SERVICE_PROJECT_ID?.trim();
 
-  console.log(
-    `[M2M] token request — authority=${authority ?? "(unset)"} internal=${internalAuthority ?? "(unset)"} clientId=${clientId ?? "(unset)"} secret=${clientSecret ? `[SET len=${clientSecret.length} prefix=${clientSecret.slice(0, 6)}]` : "(unset)"}`,
-  );
+  log.info('M2M token request', {
+    authority: authority ?? null,
+    internalAuthority: internalAuthority ?? null,
+    clientId: clientId ?? null,
+    secretSet: !!clientSecret,
+  });
 
   if (!authority || !clientId || !clientSecret) {
     throw new Error("Missing ZITADEL_AUTHORITY, ZITADEL_CLIENT_ID or ZITADEL_CLIENT_SECRET");
@@ -66,7 +70,7 @@ async function getM2MToken(): Promise<string> {
 
   if (!response.ok) {
     const body = await response.text();
-    console.error(`[M2M] token fetch FAILED (${response.status}): ${body}`);
+    log.error('M2M token fetch failed', { status: response.status });
     throw new Error(`Zitadel token fetch failed (${response.status}): ${body}`);
   }
 
@@ -339,7 +343,7 @@ export function createApp() {
 
       res.status(201).json(payload);
     } catch (e) {
-      console.error("Contact form proxy error:", e);
+      log.error('Contact form proxy error', { error: (e as Error).message });
       res.status(500).json({
         message: "Contact form is temporarily unavailable. Please try again later.",
       });
@@ -353,13 +357,13 @@ export const app = createApp();
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const PORT = Number(process.env.PORT ?? 3001);
-  const clientId = process.env.ZITADEL_CLIENT_ID?.trim();
-  const clientSecret = process.env.ZITADEL_CLIENT_SECRET?.trim();
-  console.log(`[startup] ZITADEL_AUTHORITY=${process.env.ZITADEL_AUTHORITY ?? "(unset)"}`);
-  console.log(`[startup] ZITADEL_CLIENT_ID=${clientId ?? "(unset)"}`);
-  console.log(`[startup] ZITADEL_CLIENT_SECRET=${clientSecret ? `[SET len=${clientSecret.length} prefix=${clientSecret.slice(0, 6)}]` : "(unset)"}`);
-  console.log(`[startup] CONTACT_SERVICE_URL=${process.env.CONTACT_SERVICE_URL ?? "(unset, default used)"}`);
+  log.info('KSeFast proxy starting', {
+    port: PORT,
+    zitadelAuthority: process.env.ZITADEL_AUTHORITY ?? null,
+    zitadelClientId: process.env.ZITADEL_CLIENT_ID?.trim() ?? null,
+    contactServiceUrl: process.env.CONTACT_SERVICE_URL ?? '(default)',
+  });
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`KSeFast proxy listening on http://0.0.0.0:${PORT}`);
+    log.info('KSeFast proxy listening', { port: PORT });
   });
 }
