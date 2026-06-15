@@ -4,7 +4,7 @@ WORKDIR /app
 COPY server/package.json ./package.json
 RUN npm install
 
-COPY server/server.ts ./server.ts
+COPY server/server.ts server/logger.ts ./
 
 EXPOSE 3001
 
