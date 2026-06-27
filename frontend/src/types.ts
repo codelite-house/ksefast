@@ -143,6 +143,15 @@ export interface DownloadedInvoice {
   xml: string;
 }
 
+export type DownloadPhase = "auth" | "metadata" | "download" | "archive";
+
+export interface DownloadProgress {
+  phase: DownloadPhase;
+  message: string;
+  current?: number;
+  total?: number;
+}
+
 export type ContactMessageType = "ContactForm" | "ProblemReport";
 
 export interface ContactSubmissionRequest {

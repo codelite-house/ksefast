@@ -1,22 +1,28 @@
 import { useMutation } from "@tanstack/react-query";
-import { getPublicCertificates } from "../services/securityService";
+import { useState } from "react";
+import { createArchiveBuilder } from "../archiveService";
+import { fetchAllInvoiceMetadata } from "../lib/fetchAllInvoiceMetadata";
+import { encryptTokenWithChallenge } from "../lib/crypto";
 import {
   getChallenge,
-  initTokenAuth,
   getAuthStatus,
+  initTokenAuth,
   redeemToken,
 } from "../services/authService";
 import {
-  queryInvoiceMetadata,
   downloadInvoiceXml,
 } from "../services/invoicesService";
-import { encryptTokenWithChallenge } from "../lib/crypto";
-import { buildArchive } from "../archiveService";
-import type { DownloadInvoicesRequest, DownloadedInvoice } from "../types";
+import { getPublicCertificates } from "../services/securityService";
+import type {
+  DownloadInvoicesRequest,
+  DownloadedInvoice,
+  DownloadProgress,
+  InvoiceMetadata,
+} from "../types";
 
-const MAX_INVOICES_PER_EXPORT = 50;
 const AUTH_POLL_MAX_ATTEMPTS = 20;
 const AUTH_POLL_INTERVAL_MS = 1000;
+const DOWNLOAD_CHUNK_SIZE = 25;
 
 const pollUntilAuthorized = async (
   environment: DownloadInvoicesRequest["environment"],
@@ -51,6 +57,25 @@ const pollUntilAuthorized = async (
   throw new Error("KSeF authentication timed out after 20 attempts.");
 };
 
+const downloadInvoiceChunk = async (
+  environment: DownloadInvoicesRequest["environment"],
+  accessToken: string,
+  metadataChunk: InvoiceMetadata[],
+): Promise<DownloadedInvoice[]> => {
+  const downloaded: DownloadedInvoice[] = [];
+
+  for (const metadata of metadataChunk) {
+    const xml = await downloadInvoiceXml(
+      environment,
+      accessToken,
+      metadata.ksefNumber,
+    );
+    downloaded.push({ metadata, xml });
+  }
+
+  return downloaded;
+};
+
 export interface DownloadResult {
   blob: Blob;
   fileName: string;
@@ -60,11 +85,15 @@ export interface DownloadResult {
 /**
  * Hook do pobrania paczki faktur z KSeF.
  * Sekwencja: certyfikaty → challenge → RSA encrypt → init auth → polling →
- *            redeem → metadane → pobieranie XMLi → ZIP/PDF archive.
+ *            redeem → metadane (pełna paginacja) → pobieranie XML partiami → ZIP/PDF.
  */
-export const useDownloadInvoices = () =>
-  useMutation<DownloadResult, Error, DownloadInvoicesRequest>({
+export const useDownloadInvoices = () => {
+  const [progress, setProgress] = useState<DownloadProgress | null>(null);
+
+  const mutation = useMutation<DownloadResult, Error, DownloadInvoicesRequest>({
     mutationFn: async (request) => {
+      const report = (update: DownloadProgress) => setProgress(update);
+
       const { environment, token } = request;
       const normalizedToken = token.trim();
 
@@ -72,7 +101,8 @@ export const useDownloadInvoices = () =>
         throw new Error("KSeF token is required.");
       }
 
-      // 1. Certyfikaty klucza publicznego
+      report({ phase: "auth", message: "Logowanie do KSeF…" });
+
       const certificates = await getPublicCertificates(environment);
       const encryptionCert = certificates.find((c) =>
         (c.usage ?? []).some((u) => u.toLowerCase() === "kseftokenencryption"),
@@ -81,17 +111,14 @@ export const useDownloadInvoices = () =>
         throw new Error("KSeF token encryption certificate not found.");
       }
 
-      // 2. Challenge
       const challenge = await getChallenge(environment);
 
-      // 3. Szyfrowanie tokena w przeglądarce (RSA-OAEP, token nie opuszcza przeglądarki)
       const encryptedToken = await encryptTokenWithChallenge(
         normalizedToken,
         challenge.timestampMs,
         encryptionCert.certificate,
       );
 
-      // 4. Inicjalizacja autoryzacji
       const initResponse = await initTokenAuth(environment, {
         challenge: challenge.challenge,
         contextIdentifier: {
@@ -102,79 +129,103 @@ export const useDownloadInvoices = () =>
         authorizationPolicy: null,
       });
 
-      // 5. Polling statusu autoryzacji
       await pollUntilAuthorized(
         environment,
         initResponse.referenceNumber,
         initResponse.authenticationToken.token,
       );
 
-      // 6. Wymiana authToken → accessToken
       const tokens = await redeemToken(
         environment,
         initResponse.authenticationToken.token,
       );
 
-      // 7. Pobieranie metadanych (z paginacją)
-      const allInvoices = [];
-      let pageOffset = 0;
+      report({ phase: "metadata", message: "Wyszukiwanie faktur…", current: 0 });
 
-      while (true) {
-        const page = await queryInvoiceMetadata(
-          environment,
-          tokens.accessToken.token,
-          {
-            subjectType: request.subjectType,
-            dateRange: {
-              dateType: request.dateType,
-              from: request.dateFrom,
-              to: request.dateTo,
-            },
+      const allInvoices = await fetchAllInvoiceMetadata(
+        environment,
+        tokens.accessToken.token,
+        {
+          subjectType: request.subjectType,
+          dateRange: {
+            dateType: request.dateType,
+            from: request.dateFrom,
+            to: request.dateTo,
           },
-          pageOffset,
-        );
-
-        allInvoices.push(...page.invoices);
-
-        if (page.isTruncated) {
-          throw new Error(
-            "Too many invoices in the selected range. Narrow the date range and try again.",
-          );
-        }
-
-        if (allInvoices.length > MAX_INVOICES_PER_EXPORT) {
-          throw new Error(
-            `Max ${MAX_INVOICES_PER_EXPORT} invoices per export. Narrow the date range and try again.`,
-          );
-        }
-
-        if (!page.hasMore) break;
-        pageOffset++;
-      }
+        },
+        {
+          onFoundCount: (count) =>
+            report({
+              phase: "metadata",
+              message: `Wyszukiwanie faktur… (znaleziono ${count})`,
+              current: count,
+            }),
+        },
+      );
 
       if (allInvoices.length === 0) {
-        throw new Error("No invoices found for the selected filters.");
+        throw new Error("Brak faktur dla wybranych filtrów.");
       }
 
-      // 8. Pobieranie XMLi (sekwencyjnie — nie zalewamy KSeF równoległymi requestami)
-      const downloaded: DownloadedInvoice[] = [];
-      for (const metadata of allInvoices) {
-        const xml = await downloadInvoiceXml(
+      const total = allInvoices.length;
+      const archive = createArchiveBuilder(request.format);
+      let downloadedCount = 0;
+
+      for (let offset = 0; offset < total; offset += DOWNLOAD_CHUNK_SIZE) {
+        const chunk = allInvoices.slice(offset, offset + DOWNLOAD_CHUNK_SIZE);
+
+        report({
+          phase: "download",
+          message: `Pobieranie faktur… (${downloadedCount}/${total})`,
+          current: downloadedCount,
+          total,
+        });
+
+        const downloadedChunk = await downloadInvoiceChunk(
           environment,
           tokens.accessToken.token,
-          metadata.ksefNumber,
+          chunk,
         );
-        downloaded.push({ metadata, xml });
+
+        downloadedCount += downloadedChunk.length;
+
+        report({
+          phase: "download",
+          message: `Pobieranie faktur… (${downloadedCount}/${total})`,
+          current: downloadedCount,
+          total,
+        });
+
+        if (request.format === "pdf") {
+          report({
+            phase: "archive",
+            message: `Konwersja do PDF… (${downloadedCount}/${total})`,
+            current: downloadedCount,
+            total,
+          });
+        }
+
+        await archive.addInvoices(downloadedChunk);
       }
 
-      // 9. Budowanie archiwum ZIP
-      const blob = await buildArchive(downloaded, request.format);
+      report({
+        phase: "archive",
+        message: "Tworzenie paczki ZIP…",
+        current: total,
+        total,
+      });
+
+      const blob = await archive.finalize();
       const today = new Date().toISOString().slice(0, 10);
 
       return {
         blob,
         fileName: `ksefast-${request.format}-${today}.zip`,
-        invoiceCount: allInvoices.length,
+        invoiceCount: total,
       };
     },
+    onSettled: () => setProgress(null),
   });
+
+  return { ...mutation, progress };
+};

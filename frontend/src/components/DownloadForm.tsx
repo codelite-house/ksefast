@@ -17,6 +17,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import LinearProgress from "@mui/material/LinearProgress";
 import Typography from "@mui/material/Typography";
 
 const CONTEXT_META: Record<
@@ -93,6 +94,7 @@ const DownloadForm = () => {
     isError,
     error: downloadError,
     reset: resetDownload,
+    progress,
   } = useDownloadInvoices();
 
   const selectedMonthData =
@@ -340,7 +342,19 @@ const DownloadForm = () => {
             severity="info"
             icon={<CircularProgress size={18} color="inherit" />}
           >
-            Łączenie z KSeF i pobieranie faktur. To może potrwać do kilkudziesięciu sekund.
+            <Typography variant="body2" sx={{ mb: progress?.total ? 1.5 : 0 }}>
+              {progress?.message ??
+                "Łączenie z KSeF i pobieranie faktur. To może potrwać kilka minut przy dużej liczbie dokumentów."}
+            </Typography>
+            {progress?.total != null && progress.total > 0 && (
+              <LinearProgress
+                variant="determinate"
+                value={Math.round(
+                  ((progress.current ?? 0) / progress.total) * 100,
+                )}
+                sx={{ borderRadius: 1 }}
+              />
+            )}
           </Alert>
         )}
 
