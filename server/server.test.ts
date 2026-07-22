@@ -213,3 +213,82 @@ test("POST /api/contact/messages returns 500 when credentials are missing", asyn
     });
   }
 });
+
+test("POST /api/contact/messages returns 400 when required fields are missing", async () => {
+  const app = createApp();
+  const server = app.listen(0);
+
+  try {
+    const port = (server.address() as AddressInfo).port;
+
+    const missingName = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "a@b.com", message: "Hi", messageType: "ContactForm" }),
+    });
+    assert.equal(missingName.status, 400);
+    assert.deepEqual(await missingName.json(), { message: "name, email and message are required" });
+
+    const missingEmail = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Bob", message: "Hi", messageType: "ContactForm" }),
+    });
+    assert.equal(missingEmail.status, 400);
+    assert.deepEqual(await missingEmail.json(), { message: "name, email and message are required" });
+
+    const missingMessage = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Bob", email: "b@c.com", messageType: "ContactForm" }),
+    });
+    assert.equal(missingMessage.status, 400);
+    assert.deepEqual(await missingMessage.json(), { message: "name, email and message are required" });
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+});
+
+test("POST /api/contact/messages returns 400 for invalid messageType", async () => {
+  const app = createApp();
+  const server = app.listen(0);
+
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const response = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Eve",
+        email: "eve@example.com",
+        message: "Hack attempt",
+        messageType: "InvalidType",
+      }),
+    });
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), {
+      message: "messageType must be ContactForm or ProblemReport",
+    });
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+});
