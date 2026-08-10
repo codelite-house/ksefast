@@ -6,12 +6,14 @@ import { createApp } from "./server";
 const originalFetch = globalThis.fetch;
 const originalBearer = process.env.CONTACT_SERVICE_BEARER_TOKEN;
 const originalContactServiceUrl = process.env.CONTACT_SERVICE_URL;
+const originalKsefEnv = process.env.KSEF_ENV;
 
 beforeEach(() => {
   delete process.env.CONTACT_SERVICE_BEARER_TOKEN;
   delete process.env.ZITADEL_AUTHORITY;
   delete process.env.ZITADEL_CLIENT_ID;
   delete process.env.ZITADEL_CLIENT_SECRET;
+  delete process.env.KSEF_ENV;
   process.env.CONTACT_SERVICE_URL = "http://contact-service.example/api/v1/messages";
 });
 
@@ -28,6 +30,12 @@ after(() => {
     delete process.env.CONTACT_SERVICE_URL;
   } else {
     process.env.CONTACT_SERVICE_URL = originalContactServiceUrl;
+  }
+
+  if (originalKsefEnv === undefined) {
+    delete process.env.KSEF_ENV;
+  } else {
+    process.env.KSEF_ENV = originalKsefEnv;
   }
 });
 
@@ -289,6 +297,105 @@ test("POST /api/contact/messages returns 400 for invalid messageType", async () 
 
         resolve();
       });
+    });
+  }
+});
+
+test("KSeF proxy uses demo URL by default (no KSEF_ENV set)", async () => {
+  const app = createApp();
+  let capturedUrl: string | undefined;
+
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    capturedUrl = request.url;
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    await fetch(`http://127.0.0.1:${port}/api/security/certificates`);
+    assert.ok(capturedUrl, "fetch should have been called");
+    assert.ok(
+      capturedUrl!.startsWith("https://api-test.ksef.mf.gov.pl"),
+      `expected demo URL, got: ${capturedUrl}`,
+    );
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  }
+});
+
+test("KSeF proxy uses prod URL when KSEF_ENV=prod", async () => {
+  process.env.KSEF_ENV = "prod";
+  const app = createApp();
+  let capturedUrl: string | undefined;
+
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    capturedUrl = request.url;
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    await fetch(`http://127.0.0.1:${port}/api/security/certificates`);
+    assert.ok(capturedUrl, "fetch should have been called");
+    assert.ok(
+      capturedUrl!.startsWith("https://api.ksef.mf.gov.pl"),
+      `expected prod URL, got: ${capturedUrl}`,
+    );
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+  }
+});
+
+test("KSeF proxy ignores query param environment and respects KSEF_ENV only", async () => {
+  delete process.env.KSEF_ENV;
+  const app = createApp();
+  let capturedUrl: string | undefined;
+
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    capturedUrl = request.url;
+    return new Response(JSON.stringify([]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    // Even with ?environment=prod query param, should still use demo (no KSEF_ENV set)
+    await fetch(`http://127.0.0.1:${port}/api/security/certificates?environment=prod`);
+    assert.ok(capturedUrl, "fetch should have been called");
+    assert.ok(
+      capturedUrl!.startsWith("https://api-test.ksef.mf.gov.pl"),
+      `expected demo URL regardless of query param, got: ${capturedUrl}`,
+    );
+  } finally {
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
     });
   }
 });
