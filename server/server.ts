@@ -7,11 +7,21 @@ const KSEF_BASE_URLS: Record<string, string> = {
   prod: "https://api.ksef.mf.gov.pl/v2",
 };
 
-const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-};
+const CORS_ALLOW_METHODS = "GET, POST, OPTIONS";
+const CORS_ALLOW_HEADERS = "Content-Type, Authorization";
+
+function resolveAllowedOrigin(requestOrigin: string | undefined): string | null {
+  const raw = process.env.KSEF_ALLOWED_ORIGINS?.trim();
+  if (!raw) {
+    // No allowlist configured: allow all only in non-production to avoid blocking
+    // local dev; in production, block cross-origin requests rather than exposing
+    // KSeF proxy to arbitrary domains.
+    return process.env.NODE_ENV === "production" ? null : "*";
+  }
+  const allowed = raw.split(",").map((o) => o.trim()).filter(Boolean);
+  if (requestOrigin && allowed.includes(requestOrigin)) return requestOrigin;
+  return null;
+}
 
 type ContactMessageType = "ContactForm" | "ProblemReport";
 
@@ -88,10 +98,12 @@ interface ContactMessageBody {
   additionalProperties?: Record<string, unknown>;
 }
 
-function setCors(res: Response): void {
-  for (const [k, v] of Object.entries(CORS_HEADERS)) {
-    res.setHeader(k, v);
-  }
+function setCors(res: Response, req: Request): void {
+  const origin = resolveAllowedOrigin(req.headers.origin);
+  if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+  res.setHeader("Access-Control-Allow-Methods", CORS_ALLOW_METHODS);
+  res.setHeader("Access-Control-Allow-Headers", CORS_ALLOW_HEADERS);
+  if (origin && origin !== "*") res.setHeader("Vary", "Origin");
 }
 
 function resolveBase(req: Request): string {
@@ -156,13 +168,13 @@ export function createApp() {
 
   // CORS preflight
   app.options("*", (req, res) => {
-    setCors(res);
+    setCors(res, req);
     res.status(200).end();
   });
 
   // GET /api/security/certificates  →  GET /security/public-key-certificates
   app.get("/api/security/certificates", async (req, res) => {
-    setCors(res);
+    setCors(res, req);
     try {
       await proxy(
         `${resolveBase(req)}/security/public-key-certificates`,
@@ -176,7 +188,7 @@ export function createApp() {
 
   // POST /api/auth/challenge  →  POST /auth/challenge
   app.post("/api/auth/challenge", async (req, res) => {
-    setCors(res);
+    setCors(res, req);
     try {
       await proxy(`${resolveBase(req)}/auth/challenge`, { method: "POST" }, res);
     } catch (e) {
@@ -186,7 +198,7 @@ export function createApp() {
 
   // POST /api/auth/token  →  POST /auth/ksef-token
   app.post("/api/auth/token", async (req, res) => {
-    setCors(res);
+    setCors(res, req);
     try {
       await proxy(
         `${resolveBase(req)}/auth/ksef-token`,
@@ -204,7 +216,7 @@ export function createApp() {
 
   // GET /api/auth/status  →  GET /auth/{referenceNumber}
   app.get("/api/auth/status", async (req, res) => {
-    setCors(res);
+    setCors(res, req);
     const { referenceNumber } = req.query;
     if (!referenceNumber) {
       res.status(400).json({ message: "referenceNumber is required" });
@@ -228,7 +240,7 @@ export function createApp() {
 
   // POST /api/auth/redeem  →  POST /auth/token/redeem
   app.post("/api/auth/redeem", async (req, res) => {
-    setCors(res);
+    setCors(res, req);
     const auth = req.headers.authorization ?? "";
     if (!auth) {
       res.status(401).json({ message: "Authorization is required" });
@@ -247,7 +259,7 @@ export function createApp() {
 
   // POST /api/invoices/metadata  →  POST /invoices/query/metadata
   app.post("/api/invoices/metadata", async (req, res) => {
-    setCors(res);
+    setCors(res, req);
     const auth = req.headers.authorization ?? "";
     if (!auth) {
       res.status(401).json({ message: "Authorization is required" });
@@ -271,7 +283,7 @@ export function createApp() {
 
   // GET /api/invoices/download  →  GET /invoices/ksef/{ksefNumber}
   app.get("/api/invoices/download", async (req, res) => {
-    setCors(res);
+    setCors(res, req);
     const { ksefNumber } = req.query;
     if (!ksefNumber) {
       res.status(400).json({ message: "ksefNumber is required" });
@@ -295,7 +307,7 @@ export function createApp() {
 
   // POST /api/contact/messages  -> POST Contact Service /api/v1/messages
   app.post("/api/contact/messages", async (req, res) => {
-    setCors(res);
+    setCors(res, req);
 
     const body = (req.body ?? {}) as ContactMessageBody;
     if (!body.name?.trim() || !body.email?.trim() || !body.message?.trim()) {
