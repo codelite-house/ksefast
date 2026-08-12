@@ -314,7 +314,13 @@ test("POST /api/contact/messages returns 400 for invalid messageType", async () 
 test("CORS: no allowlist, non-production — returns wildcard origin", async () => {
   // NODE_ENV not set (dev mode), no KSEF_ALLOWED_ORIGINS
   process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
-  globalThis.fetch = (async () => new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
 
   const app = createApp();
   const server = app.listen(0);
@@ -333,7 +339,13 @@ test("CORS: no allowlist, non-production — returns wildcard origin", async () 
 test("CORS: no allowlist, production — does NOT return origin header", async () => {
   process.env.NODE_ENV = "production";
   process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
-  globalThis.fetch = (async () => new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
 
   const app = createApp();
   const server = app.listen(0);
@@ -354,7 +366,13 @@ test("CORS: allowlisted origin is reflected", async () => {
   process.env.NODE_ENV = "production";
   process.env.KSEF_ALLOWED_ORIGINS = "https://app.example.com,https://other.example.com";
   process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
-  globalThis.fetch = (async () => new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
 
   const app = createApp();
   const server = app.listen(0);
@@ -374,7 +392,13 @@ test("CORS: non-allowlisted origin is rejected", async () => {
   process.env.NODE_ENV = "production";
   process.env.KSEF_ALLOWED_ORIGINS = "https://app.example.com";
   process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
-  globalThis.fetch = (async () => new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
 
   const app = createApp();
   const server = app.listen(0);
