@@ -1,17 +1,21 @@
 import assert from "node:assert/strict";
-import { after, beforeEach, test } from "node:test";
+import { after, before, beforeEach, test } from "node:test";
 import { AddressInfo } from "node:net";
 import { createApp } from "./server";
 
 const originalFetch = globalThis.fetch;
 const originalBearer = process.env.CONTACT_SERVICE_BEARER_TOKEN;
 const originalContactServiceUrl = process.env.CONTACT_SERVICE_URL;
+const originalAllowedOrigins = process.env.KSEF_ALLOWED_ORIGINS;
+const originalNodeEnv = process.env.NODE_ENV;
 
 beforeEach(() => {
   delete process.env.CONTACT_SERVICE_BEARER_TOKEN;
   delete process.env.ZITADEL_AUTHORITY;
   delete process.env.ZITADEL_CLIENT_ID;
   delete process.env.ZITADEL_CLIENT_SECRET;
+  delete process.env.KSEF_ALLOWED_ORIGINS;
+  delete process.env.NODE_ENV;
   process.env.CONTACT_SERVICE_URL = "http://contact-service.example/api/v1/messages";
 });
 
@@ -28,6 +32,18 @@ after(() => {
     delete process.env.CONTACT_SERVICE_URL;
   } else {
     process.env.CONTACT_SERVICE_URL = originalContactServiceUrl;
+  }
+
+  if (originalAllowedOrigins === undefined) {
+    delete process.env.KSEF_ALLOWED_ORIGINS;
+  } else {
+    process.env.KSEF_ALLOWED_ORIGINS = originalAllowedOrigins;
+  }
+
+  if (originalNodeEnv === undefined) {
+    delete process.env.NODE_ENV;
+  } else {
+    process.env.NODE_ENV = originalNodeEnv;
   }
 });
 
@@ -290,5 +306,87 @@ test("POST /api/contact/messages returns 400 for invalid messageType", async () 
         resolve();
       });
     });
+  }
+});
+
+// ── CORS tests (869efmtc3) ──────────────────────────────────────────────────
+
+test("CORS: no allowlist, non-production — returns wildcard origin", async () => {
+  // NODE_ENV not set (dev mode), no KSEF_ALLOWED_ORIGINS
+  process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
+  globalThis.fetch = (async () => new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+
+  const app = createApp();
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "OPTIONS",
+      headers: { Origin: "https://evil.example.com" },
+    });
+    assert.equal(res.headers.get("access-control-allow-origin"), "*");
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
+test("CORS: no allowlist, production — does NOT return origin header", async () => {
+  process.env.NODE_ENV = "production";
+  process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
+  globalThis.fetch = (async () => new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+
+  const app = createApp();
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "OPTIONS",
+      headers: { Origin: "https://evil.example.com" },
+    });
+    assert.equal(res.headers.get("access-control-allow-origin"), null,
+      "production with no allowlist must not set ACAO header");
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
+test("CORS: allowlisted origin is reflected", async () => {
+  process.env.NODE_ENV = "production";
+  process.env.KSEF_ALLOWED_ORIGINS = "https://app.example.com,https://other.example.com";
+  process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
+  globalThis.fetch = (async () => new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+
+  const app = createApp();
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "OPTIONS",
+      headers: { Origin: "https://app.example.com" },
+    });
+    assert.equal(res.headers.get("access-control-allow-origin"), "https://app.example.com");
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
+test("CORS: non-allowlisted origin is rejected", async () => {
+  process.env.NODE_ENV = "production";
+  process.env.KSEF_ALLOWED_ORIGINS = "https://app.example.com";
+  process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
+  globalThis.fetch = (async () => new Response(JSON.stringify({}), { status: 201, headers: { "Content-Type": "application/json" } })) as typeof fetch;
+
+  const app = createApp();
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "OPTIONS",
+      headers: { Origin: "https://evil.example.com" },
+    });
+    assert.equal(res.headers.get("access-control-allow-origin"), null,
+      "unknown origin must not be reflected");
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
   }
 });
