@@ -265,7 +265,19 @@ export function createApp() {
       res.status(401).json({ message: "Authorization is required" });
       return;
     }
-    const { pageOffset = "0", pageSize = "50" } = req.query;
+    // Validate pagination params to prevent injection and OOM (869eghj91).
+    const rawOffset = Number(req.query.pageOffset ?? "0");
+    const rawSize   = Number(req.query.pageSize   ?? "50");
+    if (!Number.isInteger(rawOffset) || rawOffset < 0) {
+      res.status(400).json({ message: "pageOffset must be a non-negative integer" });
+      return;
+    }
+    if (!Number.isInteger(rawSize) || rawSize < 1 || rawSize > 100) {
+      res.status(400).json({ message: "pageSize must be an integer between 1 and 100" });
+      return;
+    }
+    const pageOffset = rawOffset;
+    const pageSize   = rawSize;
     try {
       await proxy(
         `${resolveBase(req)}/invoices/query/metadata?sortOrder=Asc&pageOffset=${pageOffset}&pageSize=${pageSize}`,

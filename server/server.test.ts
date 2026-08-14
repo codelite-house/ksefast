@@ -414,3 +414,78 @@ test("CORS: non-allowlisted origin is rejected", async () => {
     await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
   }
 });
+
+// ── /api/invoices/metadata — pageOffset/pageSize validation (869eghj91) ──────
+
+async function startServer() {
+  process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
+  const app = createApp();
+  const server = app.listen(0);
+  const port = (server.address() as AddressInfo).port;
+  const close = () => new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  return { port, close };
+}
+
+test("POST /api/invoices/metadata — rejects negative pageOffset", async () => {
+  const { port, close } = await startServer();
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/invoices/metadata?pageOffset=-1`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer tok" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json() as { message: string };
+    assert.ok(body.message.includes("pageOffset"));
+  } finally {
+    await close();
+  }
+});
+
+test("POST /api/invoices/metadata — rejects non-integer pageOffset", async () => {
+  const { port, close } = await startServer();
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/invoices/metadata?pageOffset=abc`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer tok" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json() as { message: string };
+    assert.ok(body.message.includes("pageOffset"));
+  } finally {
+    await close();
+  }
+});
+
+test("POST /api/invoices/metadata — rejects pageSize > 100", async () => {
+  const { port, close } = await startServer();
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/invoices/metadata?pageSize=1000`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer tok" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json() as { message: string };
+    assert.ok(body.message.includes("pageSize"));
+  } finally {
+    await close();
+  }
+});
+
+test("POST /api/invoices/metadata — rejects pageSize < 1", async () => {
+  const { port, close } = await startServer();
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/invoices/metadata?pageSize=0`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer tok" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(res.status, 400);
+    const body = await res.json() as { message: string };
+    assert.ok(body.message.includes("pageSize"));
+  } finally {
+    await close();
+  }
+});
