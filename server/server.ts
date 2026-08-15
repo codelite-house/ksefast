@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import rateLimit, { type Options as RateLimitOptions } from "express-rate-limit";
 import { pathToFileURL } from "url";
 import log from "./logger.js";
 
@@ -21,6 +22,10 @@ function resolveAllowedOrigin(requestOrigin: string | undefined): string | null 
   const allowed = raw.split(",").map((o) => o.trim()).filter(Boolean);
   if (requestOrigin && allowed.includes(requestOrigin)) return requestOrigin;
   return null;
+}
+
+export interface AppOptions {
+  contactFormRateLimit?: Partial<RateLimitOptions>;
 }
 
 type ContactMessageType = "ContactForm" | "ProblemReport";
@@ -162,7 +167,7 @@ async function proxy(
     .send(await upstream.text());
 }
 
-export function createApp() {
+export function createApp(options?: AppOptions) {
   const app = express();
   app.use(express.json());
 
@@ -317,8 +322,17 @@ export function createApp() {
     }
   });
 
+  const contactFormLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests, please try again later." },
+    ...options?.contactFormRateLimit,
+  });
+
   // POST /api/contact/messages  -> POST Contact Service /api/v1/messages
-  app.post("/api/contact/messages", async (req, res) => {
+  app.post("/api/contact/messages", contactFormLimiter, async (req, res) => {
     setCors(res, req);
 
     const body = (req.body ?? {}) as ContactMessageBody;

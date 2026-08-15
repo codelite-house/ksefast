@@ -489,3 +489,49 @@ test("POST /api/invoices/metadata — rejects pageSize < 1", async () => {
     await close();
   }
 });
+
+// ── Rate limit tests (869efmtfd) ─────────────────────────────────────────────
+
+test("POST /api/contact/messages returns 429 after rate limit is exceeded", async () => {
+  process.env.CONTACT_SERVICE_BEARER_TOKEN = "test-token";
+
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({ submissionId: "rl-test" }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  // Low limit: max 2 per window so we can hit it quickly in tests
+  const app = createApp({ contactFormRateLimit: { windowMs: 60_000, max: 2 } });
+  const server = app.listen(0);
+
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const payload = JSON.stringify({
+      name: "Flood Bot",
+      email: "bot@example.com",
+      message: "Hello",
+      messageType: "ContactForm",
+    });
+    const headers = { "Content-Type": "application/json" };
+
+    const r1 = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, { method: "POST", headers, body: payload });
+    assert.equal(r1.status, 201, "1st request should succeed");
+
+    const r2 = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, { method: "POST", headers, body: payload });
+    assert.equal(r2.status, 201, "2nd request should succeed");
+
+    const r3 = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, { method: "POST", headers, body: payload });
+    assert.equal(r3.status, 429, "3rd request must be rate-limited");
+
+    const body = await r3.json() as { message: string };
+    assert.equal(body.message, "Too many requests, please try again later.");
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
