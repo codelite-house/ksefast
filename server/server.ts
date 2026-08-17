@@ -152,7 +152,7 @@ async function proxy(
           (body as Record<string, string>).message ??
           "KSeF upstream error")
         : String(body);
-    res.status(400).json({ status: 400, message: msg });
+    res.status(upstream.status).json({ status: upstream.status, message: msg });
     return;
   }
 

@@ -576,3 +576,80 @@ test("POST /api/contact/messages returns 429 after rate limit is exceeded", asyn
     await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
   }
 });
+
+// ── Proxy status passthrough tests (869ehyef7) ───────────────────────────────
+
+test("proxy: passes through KSeF 401 status code (not hardcoded 400)", async () => {
+  const app = createApp();
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const req = new Request(input, init);
+    if (req.url.includes("127.0.0.1") || req.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({ message: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/auth/challenge`, { method: "POST" });
+    assert.equal(res.status, 401, "KSeF 401 must be forwarded as 401, not remapped to 400");
+    const body = await res.json() as { status: number };
+    assert.equal(body.status, 401);
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
+test("proxy: passes through KSeF 429 status code (not hardcoded 400)", async () => {
+  const app = createApp();
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const req = new Request(input, init);
+    if (req.url.includes("127.0.0.1") || req.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({ message: "Rate limit exceeded" }), {
+      status: 429,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/auth/challenge`, { method: "POST" });
+    assert.equal(res.status, 429, "KSeF 429 must be forwarded as 429, not remapped to 400");
+    const body = await res.json() as { status: number };
+    assert.equal(body.status, 429);
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
+test("proxy: passes through KSeF 500 status code (not hardcoded 400)", async () => {
+  const app = createApp();
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const req = new Request(input, init);
+    if (req.url.includes("127.0.0.1") || req.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({ message: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/auth/challenge`, { method: "POST" });
+    assert.equal(res.status, 500, "KSeF 500 must be forwarded as 500, not remapped to 400");
+    const body = await res.json() as { status: number };
+    assert.equal(body.status, 500);
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
