@@ -111,8 +111,8 @@ function setCors(res: Response, req: Request): void {
   if (origin && origin !== "*") res.setHeader("Vary", "Origin");
 }
 
-function resolveBase(req: Request): string {
-  const env = req.query.environment as string;
+function resolveBase(): string {
+  const env = process.env.KSEF_ENV?.trim() ?? "demo";
   return KSEF_BASE_URLS[env] ?? KSEF_BASE_URLS.demo;
 }
 
@@ -182,7 +182,7 @@ export function createApp(options?: AppOptions) {
     setCors(res, req);
     try {
       await proxy(
-        `${resolveBase(req)}/security/public-key-certificates`,
+        `${resolveBase()}/security/public-key-certificates`,
         {},
         res,
       );
@@ -195,7 +195,7 @@ export function createApp(options?: AppOptions) {
   app.post("/api/auth/challenge", async (req, res) => {
     setCors(res, req);
     try {
-      await proxy(`${resolveBase(req)}/auth/challenge`, { method: "POST" }, res);
+      await proxy(`${resolveBase()}/auth/challenge`, { method: "POST" }, res);
     } catch (e) {
       res.status(500).json({ message: (e as Error).message });
     }
@@ -206,7 +206,7 @@ export function createApp(options?: AppOptions) {
     setCors(res, req);
     try {
       await proxy(
-        `${resolveBase(req)}/auth/ksef-token`,
+        `${resolveBase()}/auth/ksef-token`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -234,7 +234,7 @@ export function createApp(options?: AppOptions) {
     }
     try {
       await proxy(
-        `${resolveBase(req)}/auth/${encodeURIComponent(referenceNumber as string)}`,
+        `${resolveBase()}/auth/${encodeURIComponent(referenceNumber as string)}`,
         { headers: { Authorization: auth } },
         res,
       );
@@ -253,7 +253,7 @@ export function createApp(options?: AppOptions) {
     }
     try {
       await proxy(
-        `${resolveBase(req)}/auth/token/redeem`,
+        `${resolveBase()}/auth/token/redeem`,
         { method: "POST", headers: { Authorization: auth } },
         res,
       );
@@ -285,7 +285,7 @@ export function createApp(options?: AppOptions) {
     const pageSize   = rawSize;
     try {
       await proxy(
-        `${resolveBase(req)}/invoices/query/metadata?sortOrder=Asc&pageOffset=${pageOffset}&pageSize=${pageSize}`,
+        `${resolveBase()}/invoices/query/metadata?sortOrder=Asc&pageOffset=${pageOffset}&pageSize=${pageSize}`,
         {
           method: "POST",
           headers: { Authorization: auth, "Content-Type": "application/json" },
@@ -313,7 +313,7 @@ export function createApp(options?: AppOptions) {
     }
     try {
       await proxy(
-        `${resolveBase(req)}/invoices/ksef/${encodeURIComponent(ksefNumber as string)}`,
+        `${resolveBase()}/invoices/ksef/${encodeURIComponent(ksefNumber as string)}`,
         { headers: { Authorization: auth } },
         res,
       );
