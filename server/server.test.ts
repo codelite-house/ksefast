@@ -97,12 +97,11 @@ test("POST /api/contact/messages forwards payload to contact service", async () 
 
     const forwardedBody = await capturedRequest.json();
     assert.deepEqual(forwardedBody, {
-      name: "Jane Doe",
-      email: "jane@example.com",
-      message: "Need help with KSeF sync",
-      source: "ksefast-web",
-      messageType: "ProblemReport",
-      additionalProperties: {
+      senderName: "Jane Doe",
+      senderEmail: "jane@example.com",
+      content: "Need help with KSeF sync",
+      sourceUrl: "ksefast-web",
+      customFields: {
         tenantId: "tenant-1",
         invoiceNumber: "FV/123",
       },
@@ -168,12 +167,11 @@ test("POST /api/contact/messages uses bearer token when configured", async () =>
 
     const forwardedBody = await capturedRequest.json();
     assert.deepEqual(forwardedBody, {
-      name: "John Doe",
-      email: "john@example.com",
-      message: "Need support",
-      source: "ksefast-web",
-      messageType: "ContactForm",
-      additionalProperties: {
+      senderName: "John Doe",
+      senderEmail: "john@example.com",
+      content: "Need support",
+      sourceUrl: "ksefast-web",
+      customFields: {
         plan: "pro",
       },
     });
@@ -306,6 +304,49 @@ test("POST /api/contact/messages returns 400 for invalid messageType", async () 
         resolve();
       });
     });
+  }
+});
+
+// ── Field mapping + URL fix (869eefxfx) ─────────────────────────────────────
+
+test("proxy maps name/email/message to senderName/senderEmail/content and includes /submit in default URL", async () => {
+  process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";
+  delete process.env.CONTACT_SERVICE_URL;
+
+  const app = createApp();
+  let capturedUrl = "";
+  let capturedBody: Record<string, unknown> = {};
+
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const req = new Request(input, init);
+    if (req.url.includes("127.0.0.1") || req.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    capturedUrl = req.url;
+    capturedBody = await req.json() as Record<string, unknown>;
+    return new Response(JSON.stringify({ id: "x" }), { status: 201, headers: { "Content-Type": "application/json" } });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "A", email: "a@b.com", message: "hi", messageType: "ContactForm" }),
+    });
+
+    assert.ok(capturedUrl.endsWith("/submit"), `URL should end with /submit, got: ${capturedUrl}`);
+    assert.equal(capturedBody["senderName"], "A");
+    assert.equal(capturedBody["senderEmail"], "a@b.com");
+    assert.equal(capturedBody["content"], "hi");
+    assert.ok(!("name" in capturedBody), "old 'name' field must not appear");
+    assert.ok(!("email" in capturedBody), "old 'email' field must not appear");
+    assert.ok(!("message" in capturedBody), "old 'message' field must not appear");
+    assert.ok(!("messageType" in capturedBody), "messageType must not be forwarded");
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    process.env.CONTACT_SERVICE_URL = "http://contact-service.example/api/v1/messages";
   }
 });
 

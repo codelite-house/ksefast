@@ -118,7 +118,7 @@ function resolveBase(): string {
 
 function resolveContactServiceUrl(): string {
   const fromEnv = process.env.CONTACT_SERVICE_URL?.trim();
-  return fromEnv || "http://contact-service.devowiec.pl/api/v1/messages";
+  return fromEnv || "http://contact-service.devowiec.pl/api/v1/messages/submit";
 }
 
 async function buildContactServiceHeaders(): Promise<Record<string, string>> {
@@ -356,12 +356,11 @@ export function createApp(options?: AppOptions) {
         method: "POST",
         headers,
         body: JSON.stringify({
-          name: body.name.trim(),
-          email: body.email.trim(),
-          message: body.message.trim(),
-          source: body.source?.trim() || "ksefast",
-          messageType: body.messageType,
-          additionalProperties: body.additionalProperties ?? {},
+          senderName: body.name.trim(),
+          senderEmail: body.email.trim(),
+          content: body.message.trim(),
+          sourceUrl: body.source?.trim() || "ksefast",
+          customFields: body.additionalProperties ?? {},
         }),
       });
 
