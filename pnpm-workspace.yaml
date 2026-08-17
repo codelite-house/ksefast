@@ -2,3 +2,5 @@ packages:
   - frontend
   - server
   - "!frontend/vendor/**"
+allowBuilds:
+  esbuild: set this to true or false

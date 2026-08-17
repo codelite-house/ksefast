@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import rateLimit, { type Options as RateLimitOptions } from "express-rate-limit";
 import { pathToFileURL } from "url";
 import log from "./logger.js";
 
@@ -21,6 +22,10 @@ function resolveAllowedOrigin(requestOrigin: string | undefined): string | null 
   const allowed = raw.split(",").map((o) => o.trim()).filter(Boolean);
   if (requestOrigin && allowed.includes(requestOrigin)) return requestOrigin;
   return null;
+}
+
+export interface AppOptions {
+  contactFormRateLimit?: Partial<RateLimitOptions>;
 }
 
 type ContactMessageType = "ContactForm" | "ProblemReport";
@@ -162,7 +167,7 @@ async function proxy(
     .send(await upstream.text());
 }
 
-export function createApp() {
+export function createApp(options?: AppOptions) {
   const app = express();
   app.use(express.json());
 
@@ -265,7 +270,19 @@ export function createApp() {
       res.status(401).json({ message: "Authorization is required" });
       return;
     }
-    const { pageOffset = "0", pageSize = "50" } = req.query;
+    // Validate pagination params to prevent injection and OOM (869eghj91).
+    const rawOffset = Number(req.query.pageOffset ?? "0");
+    const rawSize   = Number(req.query.pageSize   ?? "50");
+    if (!Number.isInteger(rawOffset) || rawOffset < 0) {
+      res.status(400).json({ message: "pageOffset must be a non-negative integer" });
+      return;
+    }
+    if (!Number.isInteger(rawSize) || rawSize < 1 || rawSize > 100) {
+      res.status(400).json({ message: "pageSize must be an integer between 1 and 100" });
+      return;
+    }
+    const pageOffset = rawOffset;
+    const pageSize   = rawSize;
     try {
       await proxy(
         `${resolveBase(req)}/invoices/query/metadata?sortOrder=Asc&pageOffset=${pageOffset}&pageSize=${pageSize}`,
@@ -305,8 +322,17 @@ export function createApp() {
     }
   });
 
+  const contactFormLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests, please try again later." },
+    ...options?.contactFormRateLimit,
+  });
+
   // POST /api/contact/messages  -> POST Contact Service /api/v1/messages
-  app.post("/api/contact/messages", async (req, res) => {
+  app.post("/api/contact/messages", contactFormLimiter, async (req, res) => {
     setCors(res, req);
 
     const body = (req.body ?? {}) as ContactMessageBody;
