@@ -81,6 +81,7 @@ async function getM2MToken(): Promise<string> {
       grant_type: "client_credentials",
       scope: `openid urn:zitadel:iam:org:project:id:${projectId}:aud`,
     }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -139,7 +140,7 @@ async function proxy(
   init: RequestInit,
   res: Response,
 ): Promise<void> {
-  const upstream = await fetch(ksefUrl, init);
+  const upstream = await fetch(ksefUrl, { ...init, signal: AbortSignal.timeout(30_000) });
   const ct = upstream.headers.get("content-type") ?? "";
 
   if (!upstream.ok) {
