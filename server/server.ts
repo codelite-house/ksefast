@@ -196,7 +196,15 @@ export function createApp(options?: AppOptions) {
   app.post("/api/auth/challenge", async (req, res) => {
     setCors(res, req);
     try {
-      await proxy(`${resolveBase()}/auth/challenge`, { method: "POST" }, res);
+      await proxy(
+        `${resolveBase()}/auth/challenge`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(req.body),
+        },
+        res,
+      );
     } catch (e) {
       res.status(500).json({ message: (e as Error).message });
     }
@@ -363,6 +371,7 @@ export function createApp(options?: AppOptions) {
           sourceUrl: body.source?.trim() || "ksefast",
           customFields: body.additionalProperties ?? {},
         }),
+        signal: AbortSignal.timeout(10_000),
       });
 
       const ct = upstream.headers.get("content-type") ?? "";
