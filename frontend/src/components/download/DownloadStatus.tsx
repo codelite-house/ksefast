@@ -4,6 +4,7 @@ import Typography from "@mui/material/Typography";
 import { blink, pulseRing } from "../../animations";
 import { brand } from "../../theme";
 import type { DownloadPhase, DownloadProgress } from "../../types";
+import BrandMark from "../ui/BrandMark";
 import { CheckIcon } from "../ui/icons";
 
 const PHASES: { phase: DownloadPhase; label: string }[] = [
@@ -89,6 +90,9 @@ const DownloadStatus = ({ progress }: DownloadStatusProps) => {
 
   return (
     <Box role="status" aria-live="polite" sx={{ py: 1 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", mb: 1 }}>
+        <BrandMark size={84} variant="loader" />
+      </Box>
       <ProgressRing percent={percent} indeterminate={!hasTotal} />
 
       <Typography sx={{ mt: 2, textAlign: "center", fontWeight: 700, fontSize: "1.05rem" }}>

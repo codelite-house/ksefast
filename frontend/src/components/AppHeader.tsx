@@ -44,8 +44,13 @@ const AppHeader = () => {
           gap: 2,
         }}
       >
-        <Link href="#top" underline="none" aria-label="KSeFast – początek strony">
-          <BrandMark size={34} />
+        <Link
+          href="#top"
+          underline="none"
+          aria-label="KSeFast – początek strony"
+          sx={{ display: "flex", minWidth: 0, "& img": { height: { xs: 44, sm: 56 } } }}
+        >
+          <BrandMark size={56} />
         </Link>
 
         <Box
@@ -92,6 +97,7 @@ const AppHeader = () => {
             size="small"
             sx={{
               px: 2,
+              whiteSpace: "nowrap",
               borderRadius: 999,
               color: "#04210f",
               background: brand.gradientCta,

@@ -21,7 +21,7 @@ const AppFooter = () => (
     }}
   >
     <Box>
-      <BrandMark size={30} />
+      <BrandMark size={52} variant="static" />
       <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, maxWidth: 520, lineHeight: 1.6 }}>
         KSeFast to niezależny projekt open source – nie jest produktem Ministerstwa Finansów. Stworzony przez{" "}
         <Link href="https://github.com/codelitehouse" target="_blank" rel="noreferrer">
