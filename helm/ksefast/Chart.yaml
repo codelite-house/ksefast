@@ -1,0 +1,7 @@
+apiVersion: v2
+name: ksefast
+description: KSeFast — API (Node.js proxy) + App (React, nginx), one release
+type: application
+# CI nadpisuje obie wartości przez `helm package --version X --app-version X`.
+version: "0.1.0"
+appVersion: "0.1.0"

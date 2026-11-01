@@ -89,14 +89,10 @@ jobs:
       - name: Log in to GHCR (Helm OCI)
         run: |
           echo "${{ secrets.INFRA_PAT }}" | helm registry login ghcr.io --username ${{ github.repository_owner }} --password-stdin
-      - name: Package and push backend chart
+      - name: Package and push chart (api + app, one release)
         run: |
-          helm package helm/ksefast-backend --version ${VERSION} --app-version ${VERSION}
-          helm push ksefast-backend-${VERSION}.tgz oci://ghcr.io/codelite-house/helm
-      - name: Package and push frontend chart
-        run: |
-          helm package helm/ksefast-frontend --version ${VERSION} --app-version ${VERSION}
-          helm push ksefast-frontend-${VERSION}.tgz oci://ghcr.io/codelite-house/helm
+          helm package helm/ksefast --version ${VERSION} --app-version ${VERSION}
+          helm push ksefast-${VERSION}.tgz oci://ghcr.io/codelite-house/helm
 
   notify-infra:
     needs: [helm-release, version]

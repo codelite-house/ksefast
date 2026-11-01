@@ -1,0 +1,69 @@
+imagePullSecrets: []
+
+# API — bezstanowy proxy Node.js (KSeF + contact-service M2M). Brak bazy danych.
+api:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/codelite-house/ksefast-backend
+    pullPolicy: IfNotPresent
+    tag: "" # defaults to Chart.AppVersion — CI sets both via `helm package --app-version`
+  service:
+    port: 3001
+  # Zwykłe zmienne środowiskowe (klucz: wartość).
+  env: {}
+  # Zmienne z sekretów (np. Zitadel M2M), tak jak w poprzednim chartcie ksefast-backend:
+  #   - name: ZITADEL_CLIENT_ID
+  #     secretKeyRef: { name: zitadel-ksefast-backend, key: ZITADEL_CLIENT_ID, optional: false }
+  envValueFrom: []
+  resources: {}
+  livenessProbe:
+    tcpSocket:
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 6
+  readinessProbe:
+    tcpSocket:
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 6
+
+# App — React (statyczny build) serwowany przez nginx, który proxuje /api/ do API.
+app:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/codelite-house/ksefast-frontend
+    pullPolicy: IfNotPresent
+    tag: "" # defaults to Chart.AppVersion — ta sama wersja co api, jeden release CI obejmuje oba
+  service:
+    port: 80
+  env: {}
+  resources: {}
+  livenessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 6
+  readinessProbe:
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 6
+
+# Jeden Ingress. Wszystkie hosty kierują na App (nginx), a /api/ nginx przekazuje do API —
+# dzięki temu przeglądarka rozmawia z jednym originem (bez CORS), a API nie jest wystawione osobno.
+ingress:
+  enabled: false
+  className: haproxy-public
+  annotations: {}
+  hosts: []
+  tls: []
