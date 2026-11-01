@@ -653,3 +653,66 @@ test("proxy: passes through KSeF 500 status code (not hardcoded 400)", async () 
     await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
   }
 });
+
+// Regression: Node's fetch drops a custom `Host` header, so the internal Zitadel call must identify
+// the external host with headers that survive (otherwise Zitadel answers 404 "Instance not found"
+// and the contact form shows "temporarily unavailable"). Keep this test LAST: it fills the
+// module-level M2M token cache, which would hide the "missing credentials" tests above.
+test("POST /api/contact/messages: M2M token request carries the external Zitadel host in headers fetch keeps", async () => {
+  process.env.ZITADEL_AUTHORITY = "https://auth.example.com";
+  process.env.ZITADEL_INTERNAL_AUTHORITY = "http://zitadel.internal:8080";
+  process.env.ZITADEL_CLIENT_ID = "ksefast-backend";
+  process.env.ZITADEL_CLIENT_SECRET = "secret";
+  process.env.CONTACT_SERVICE_PROJECT_ID = "123";
+
+  const app = createApp();
+  let tokenRequest: Request | undefined;
+
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+
+    if (request.url.includes("127.0.0.1") || request.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+
+    if (request.url === "http://zitadel.internal:8080/oauth/v2/token") {
+      tokenRequest = request;
+      return new Response(JSON.stringify({ access_token: "m2m-token", expires_in: 3600 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ submissionId: "abc-123" }), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const response = await fetch(`http://127.0.0.1:${port}/api/contact/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Jane Doe",
+        email: "jane@example.com",
+        message: "Zitadel host routing",
+        messageType: "ContactForm",
+      }),
+    });
+
+    assert.equal(response.status, 201);
+    assert.ok(tokenRequest, "the M2M token request should have been made to the internal authority");
+    assert.equal(tokenRequest.headers.get("x-zitadel-instance-host"), "auth.example.com");
+    assert.equal(tokenRequest.headers.get("x-forwarded-host"), "auth.example.com");
+  } finally {
+    delete process.env.ZITADEL_INTERNAL_AUTHORITY;
+    delete process.env.CONTACT_SERVICE_PROJECT_ID;
+    await new Promise<void>((resolve, reject) => {
+      server.close((error) => (error ? reject(error) : resolve()));
+    });
+  }
+});

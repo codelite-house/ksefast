@@ -63,11 +63,17 @@ async function getM2MToken(): Promise<string> {
   }
 
   // Use internal cluster URL to avoid hairpin NAT (K3s/Flannel doesn't route
-  // external IPs back to cluster services). Host header must stay as the external
-  // hostname so Zitadel's virtual-host routing recognises the request.
+  // external IPs back to cluster services). Zitadel's virtual-host routing must still see the
+  // external hostname. A custom `Host` header does NOT work here: Node's built-in fetch (undici)
+  // silently drops it, so Zitadel saw the internal service name and answered 404 "Instance not
+  // found". x-zitadel-instance-host / x-forwarded-host are not filtered by fetch and are honoured
+  // by Zitadel for instance resolution.
   const tokenBase = internalAuthority ?? authority;
   const extraHeaders: Record<string, string> = internalAuthority
-    ? { Host: new URL(authority).hostname }
+    ? (() => {
+        const externalHost = new URL(authority).hostname;
+        return { "x-zitadel-instance-host": externalHost, "x-forwarded-host": externalHost };
+      })()
     : {};
 
   const response = await fetch(`${tokenBase}/oauth/v2/token`, {

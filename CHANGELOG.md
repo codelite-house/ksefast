@@ -22,6 +22,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 - Szablony zgłoszeń GitHub Issues po polsku (błędy, propozycje funkcji)
 - W chartcie Helm backendu dodano obsługę zmiennych środowiskowych przez `valueFrom.secretKeyRef` (bez wpisywania kluczy jawnie w values)
 
+### Naprawiono
+
+- Formularz kontaktowy: błąd "Contact form is temporarily unavailable" – wbudowany `fetch` w Node po cichu ignoruje własny nagłówek `Host`, więc Zitadel (wywoływany po wewnętrznym adresie klastra) nie rozpoznawał instancji i odpowiadał 404 "Instance not found". Serwer podaje teraz zewnętrzną domenę nagłówkami `x-zitadel-instance-host` i `x-forwarded-host`, które `fetch` przepuszcza; dodano test regresji
+
 ### Zmieniono
 
 - FAQ przepisane na to, co aplikacja faktycznie robi: usunięto pytania o powiadomienia o nowych fakturach i wyszukiwanie faktury (tych funkcji nie ma), o "archiwizację" oraz zapewnienie "bezpieczniejsze niż w banku"; zdublowane pytania scalono, dodano "Skąd wziąć token KSeF?", poprawiono odpowiedź o limitach (zamiast nieaktualnego "maksymalnie 50 faktur"). Kafelek "Szybkie szukanie" zastąpiono "Cały miesiąc jednym kliknięciem"
