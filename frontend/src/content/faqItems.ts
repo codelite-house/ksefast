@@ -6,58 +6,38 @@ export interface FaqItem {
 export const faqItems: FaqItem[] = [
   {
     q: "Czy mój token jest bezpieczny?",
-    a: "Tak. Token jest szyfrowany na Twoim urządzeniu, zanim zostanie wysłany.",
+    a: "Token jest szyfrowany w Twojej przeglądarce (RSA-OAEP, kluczem publicznym KSeF), zanim opuści Twój komputer. Serwer pośredniczący widzi tylko zaszyfrowaną wartość, a KSeFast nie zapisuje tokena ani na serwerze, ani w przeglądarce.",
   },
   {
-    q: "Czy moje dane są bezpieczne?",
-    a: "Twoje faktury są u nas bezpieczniejsze niż w banku. Używamy tych samych standardów szyfrowania, które chronią przelewy internetowe.",
-  },
-  {
-    q: "Czy muszę ręcznie pobierać każdą fakturę z KSeF?",
-    a: "Nie. KSeFast robi to za Ciebie automatycznie i zbiera faktury w jedną paczkę.",
+    q: "Czy dane są gdzieś zapisywane?",
+    a: "Nie. Serwer pośredniczący jest bezstanowy i nie ma bazy danych. Istnieje tylko dlatego, że API KSeF nie pozwala na zapytania wprost z przeglądarki, więc faktury przechodzą przez niego w drodze do Ciebie. Paczka ZIP (i PDF) powstaje w Twojej przeglądarce i trafia od razu na Twój dysk.",
   },
   {
     q: "Dlaczego warto używać KSeFast zamiast oficjalnego portalu Ministerstwa Finansów?",
-    a: "Oficjalny portal jest bezpieczny, ale bywa czasochłonny. KSeFast upraszcza to, co trudne: pobierasz zbiorczo cały miesiąc jednym kliknięciem, omijasz skomplikowane menu i wielokrotne logowanie, a na koniec dostajesz jedną uporządkowaną paczkę ZIP, którą wyślesz księgowej w 5 sekund.",
+    a: "Oficjalny portal jest bezpieczny, ale pobieranie wielu faktur wymaga klikania po jednej. KSeFast pobiera cały wybrany miesiąc jednym kliknięciem i oddaje jedną paczkę ZIP, którą możesz od razu wysłać księgowej.",
   },
   {
-    q: "Czy dostanę powiadomienie o nowej fakturze?",
-    a: "To funkcja, którą planujemy wdrożyć wkrótce. Docelowo nowe koszty mają wpadać do Ciebie jako szybkie powiadomienie, bez codziennego sprawdzania KSeF.",
+    q: "Skąd wziąć token KSeF?",
+    a: "Token generujesz samodzielnie w oficjalnym portalu KSeF po zalogowaniu na konto firmy. Powinien mieć uprawnienie do odczytu faktur. Krok po kroku opisuje to instrukcja Ministerstwa Finansów na podatki.gov.pl/ksef.",
   },
   {
-    q: "Jak szybko znajdę konkretną fakturę?",
-    a: "Bardzo szybko: np. fakturę od dostawcy X z marca znajdziesz w kilka sekund, bez przeklikiwania rządowych ekranów.",
+    q: "Jak pobrać faktury z KSeF do PDF?",
+    a: "Wybierz format PDF i uruchom pobieranie. KSeF udostępnia faktury wyłącznie jako XML, więc KSeFast zamienia je na PDF lokalnie w Twojej przeglądarce, za pomocą oficjalnej biblioteki Ministerstwa Finansów.",
+  },
+  {
+    q: "Co to jest kontekst logowania?",
+    a: "To informacja, w czyim imieniu logujesz się do KSeF – zwykle NIP firmy. W formularzu wpisujesz po prostu NIP, a inne rodzaje identyfikatorów znajdziesz w opcjach zaawansowanych.",
+  },
+  {
+    q: "Ile faktur można pobrać na raz?",
+    a: "Pobierasz cały wybrany miesiąc naraz. KSeF ogranicza jednak liczbę pobrań faktur (obecnie 16 na minutę i 64 na godzinę), więc przy dużej liczbie dokumentów pobieranie trwa dłużej, a po wyczerpaniu limitu godzinowego trzeba chwilę poczekać.",
   },
   {
     q: "Co z przekazaniem dokumentów do księgowej?",
     a: "Po pobraniu masz gotową paczkę ZIP (XML albo PDF), którą możesz od razu przekazać dalej.",
   },
   {
-    q: "Jak pobrać faktury z KSeF do PDF?",
-    a: "Wybierz format PDF i uruchom pobieranie. KSeFast automatycznie konwertuje XML do czytelnych dokumentów w kilka chwil.",
-  },
-  {
     q: "Ile to kosztuje?",
     a: "KSeFast jest darmowy. Jeśli oszczędza Ci czas, możesz wesprzeć rozwój projektu kawą w sekcji poniżej.",
-  },
-  {
-    q: "Czy KSeFast pozwala na archiwizację faktur?",
-    a: "Tak. Pobierając paczkę ZIP, tworzysz bezpieczną kopię zapasową dokumentów na własnym dysku.",
-  },
-  {
-    q: "Skąd bierze się PDF?",
-    a: "KSeF udostępnia faktury jako XML. KSeFast tworzy PDF lokalnie w Twojej przeglądarce.",
-  },
-  {
-    q: "Co to jest kontekst logowania?",
-    a: "To informacja, w czyim imieniu logujesz się do KSeF (np. NIP firmy).",
-  },
-  {
-    q: "Ile faktur można pobrać na raz?",
-    a: "Maksymalnie 50 faktur w jednej paczce.",
-  },
-  {
-    q: "Czy dane są gdzieś zapisywane?",
-    a: "Nie. Każde zapytanie jest izolowane – serwer proxy jest bezstanowy i nie posiada bazy danych.",
   },
 ];

@@ -30,8 +30,8 @@ const STEPS = [
 const BENEFITS = [
   {
     icon: BoltIcon,
-    title: "Szybkie szukanie",
-    text: "Zapomnij o przeklikiwaniu rządowych portali. Znajdź fakturę w kilka sekund.",
+    title: "Cały miesiąc jednym kliknięciem",
+    text: "Zapomnij o przeklikiwaniu rządowych portali – wybierasz miesiąc i pobierasz wszystkie faktury naraz.",
   },
   {
     icon: ArchiveIcon,
