@@ -10,6 +10,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ### Dodano
 
+- Przebudowa strony "na WOW": przyklejony nagłówek ze wskaźnikiem przewijania, hero z animacją faktur lecących do paczki ZIP, tło z poświatami, sekcje "Jak to działa", "Prywatność" (animowana droga tokena), "Porównanie" (wyścig czasu vs portal MF), FAQ jako akordeon i kontakt. Bez nowych zależności, z obsługą `prefers-reduced-motion`
+- Formularz pobierania w trzech krokach logicznych: token (z przyciskiem "Wklej" i podglądem), NIP (auto-formatowanie wklejki, ostrzeżenie o błędnej sumie kontrolnej), wybór miesiąca kafelkami oraz rodzaju faktur i formatu kartami; opcje techniczne (rodzaj identyfikatora, typ daty, rola) schowane w "Opcjach zaawansowanych"
+- Widok postępu pobierania (pierścień, etapy i liczniki na żywo) oraz ekran sukcesu z konfetti i przyciskiem "Pobierz kolejny miesiąc"
+- Wektorowy znak KSeFast i `favicon.svg` (do czasu nowego logo)
 - Licencja MIT (`LICENSE`) dla projektu
 - `CONTRIBUTING.md` – wytyczne dla kontrybutorów po polsku
 - `SECURITY.md` – polityka bezpieczeństwa i zgłaszania luk po polsku
@@ -18,6 +22,9 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ### Zmieniono
 
+- Strona przestała używać ciężkiego `logo.png` (2,2 MB, szare tło) – w nagłówku i stopce jest wektorowy `BrandMark`
+- Komunikat po pobraniu nie znika już sam po 8 sekundach; zamyka go użytkownik (np. przyciskiem "Pobierz kolejny miesiąc")
+- Treść FAQ przeniesiona do `src/content/faqItems.ts` (bez zmian w treści; dane strukturalne FAQPage zostają)
 - `README.md` – przebudowany pod open source: badge licencja/release, diagram architektury, sekcje Contributing / Security / Licencja, instrukcja dev bez Dockera
 - Atrybucja vendora `@akmf/ksef-fe-invoice-converter` w README – dodano nazwę pakietu npm i rok copyright
 - Komunikat w panelu kontaktowym uproszczono do jasnego zaproszenia do wypelnienia formularza

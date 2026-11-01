@@ -3,12 +3,13 @@ import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import MenuItem from "@mui/material/MenuItem";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
 import { useContactForm } from "../hooks/useContactForm";
+import { brand } from "../theme";
+import GlowCard from "./ui/GlowCard";
+import { MailIcon } from "./ui/icons";
 
 const MESSAGE_TYPES = [
   { value: "ProblemReport", label: "Zgłoś problem" },
@@ -19,40 +20,49 @@ const ContactPanel = () => {
   const { fields, handlers, onSubmit, isPending, isSuccess, isError, error } = useContactForm();
 
   return (
-    <Paper sx={{ p: 3.5 }}>
-      <Stack spacing={2}>
+    <GlowCard sx={{ p: { xs: 2.5, sm: 3.5 }, height: "100%" }}>
+      <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2.5 }}>
+        <Box
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: "14px",
+            display: "grid",
+            placeItems: "center",
+            color: brand.sky,
+            bgcolor: "rgba(56,189,248,.1)",
+            border: "1px solid rgba(56,189,248,.3)",
+          }}
+        >
+          <MailIcon />
+        </Box>
         <Box>
-          <Typography variant="h6" color="primary" fontWeight={700}>
+          <Typography component="h3" sx={{ fontWeight: 800, fontSize: "1.25rem" }}>
             Masz uwagi albo pytania?
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Zapraszamy do wypełnienia formularza.
           </Typography>
         </Box>
+      </Box>
 
-        <Box component="form" onSubmit={onSubmit} sx={{ display: "grid", gap: 2 }}>
-          <TextField
-            select
-            label="Typ wiadomości"
-            value={fields.messageType}
-            onChange={handlers.onChangeMessageType}
-            fullWidth
-          >
-            {MESSAGE_TYPES.map((type) => (
-              <MenuItem key={type.value} value={type.value}>
-                {type.label}
-              </MenuItem>
-            ))}
-          </TextField>
+      <Box component="form" onSubmit={onSubmit} sx={{ display: "grid", gap: 2 }}>
+        <TextField
+          select
+          label="Typ wiadomości"
+          value={fields.messageType}
+          onChange={handlers.onChangeMessageType}
+          fullWidth
+        >
+          {MESSAGE_TYPES.map((type) => (
+            <MenuItem key={type.value} value={type.value}>
+              {type.label}
+            </MenuItem>
+          ))}
+        </TextField>
 
-          <TextField
-            label="Imię i nazwisko"
-            value={fields.name}
-            onChange={handlers.onChangeName}
-            required
-            fullWidth
-          />
-
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "minmax(0, 1fr) minmax(0, 1fr)" }, gap: 2 }}>
+          <TextField label="Imię i nazwisko" value={fields.name} onChange={handlers.onChangeName} required fullWidth />
           <TextField
             label="Adres e-mail"
             type="email"
@@ -61,42 +71,41 @@ const ContactPanel = () => {
             required
             fullWidth
           />
-
-          <TextField
-            label="Wiadomość"
-            value={fields.message}
-            onChange={handlers.onChangeMessage}
-            required
-            multiline
-            minRows={4}
-            fullWidth
-          />
-
-          <Button
-            type="submit"
-            variant="contained"
-            color="secondary"
-            disabled={isPending}
-            sx={{ py: 1.2 }}
-          >
-            {isPending ? "Wysyłanie..." : "Wyślij wiadomość"}
-          </Button>
         </Box>
 
-        {isSuccess && (
-          <Alert severity="success" variant="outlined">
-            Twoja wiadomość została wysłana.
-          </Alert>
-        )}
+        <TextField
+          label="Wiadomość"
+          value={fields.message}
+          onChange={handlers.onChangeMessage}
+          required
+          multiline
+          minRows={4}
+          fullWidth
+        />
 
-        {isError && (
-          <Alert severity="error">
-            <AlertTitle>Nie udało się wysłać wiadomości</AlertTitle>
-            {error instanceof Error ? error.message : "Spróbuj ponownie za chwilę."}
-          </Alert>
-        )}
-      </Stack>
-    </Paper>
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={isPending}
+          sx={{ py: 1.3, color: "#04210f", background: brand.gradientCta }}
+        >
+          {isPending ? "Wysyłanie…" : "Wyślij wiadomość"}
+        </Button>
+      </Box>
+
+      {isSuccess && (
+        <Alert severity="success" variant="outlined" sx={{ mt: 2 }}>
+          Twoja wiadomość została wysłana. Dziękujemy!
+        </Alert>
+      )}
+
+      {isError && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          <AlertTitle>Nie udało się wysłać wiadomości</AlertTitle>
+          {error instanceof Error ? error.message : "Spróbuj ponownie za chwilę."}
+        </Alert>
+      )}
+    </GlowCard>
   );
 };
 

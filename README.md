@@ -94,7 +94,7 @@ ksefast/
 │   ├── services/         ← komunikacja z KSeF przez proxy
 │   ├── hooks/            ← logika pobierania (TanStack Query)
 │   ├── lib/              ← crypto, QR, utils
-│   └── components/       ← UI (App, DownloadForm, QAPanel, ...)
+│   └── components/       ← UI (HeroCopy, DownloadForm, sekcje strony, ui/ – wspólne klocki)
 ├── server/server.ts      ← proxy Express (bezstanowy, bez logowania)
 ├── docs/openapi/         ← specyfikacje OpenAPI KSeF v2 (źródło prawdy)
 └── docker-compose.yml

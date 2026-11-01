@@ -1,415 +1,271 @@
-import { FormEvent, useEffect, useState } from "react";
-import { useDownloadInvoices } from "../hooks/useDownloadInvoices";
-import type { DownloadInvoicesRequest, ContextIdentifierType } from "../types";
-import { KsefApiError } from "../services/apiClient";
-import { monthLabels, defaultMonth } from "../lib/monthLabels";
-
+import { useRef } from "react";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import CircularProgress from "@mui/material/CircularProgress";
 import InputAdornment from "@mui/material/InputAdornment";
-import Link from "@mui/material/Link";
-import MenuItem from "@mui/material/MenuItem";
-import Paper from "@mui/material/Paper";
-import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import LinearProgress from "@mui/material/LinearProgress";
 import Typography from "@mui/material/Typography";
 
-const CONTEXT_META: Record<
-  ContextIdentifierType,
+import { shine } from "../animations";
+import { useDownloadForm, type InvalidField } from "../hooks/useDownloadForm";
+import { KsefApiError } from "../services/apiClient";
+import { brand } from "../theme";
+import type { DownloadFormat, EnvironmentName, SubjectType } from "../types";
+import AdvancedOptions from "./download/AdvancedOptions";
+import ChoiceCards, { type Choice } from "./download/ChoiceCards";
+import DownloadStatus from "./download/DownloadStatus";
+import DownloadSuccess from "./download/DownloadSuccess";
+import MonthPicker from "./download/MonthPicker";
+import SectionTitle from "./download/SectionTitle";
+import TokenField from "./download/TokenField";
+import GlowCard from "./ui/GlowCard";
+import { CheckIcon, CodeIcon, DownloadIcon, FileTextIcon } from "./ui/icons";
+
+const SUBJECT_CHOICES: readonly Choice<"Subject1" | "Subject2">[] = [
   {
-    label: string;
-    placeholder: string;
-    helperText: string;
-    validate: (value: string) => string | null;
-  }
-> = {
-  Nip: {
-    label: "Numer NIP firmy",
-    placeholder: "Wpisz NIP swojej firmy",
-    helperText: "10-cyfrowy NIP podatnika",
-    validate: (v) =>
-      /^\d{10}$/.test(v.trim())
-        ? null
-        : "NIP musi składać się z dokładnie 10 cyfr",
+    value: "Subject2",
+    title: "Faktury zakupu",
+    description: "Koszty – wystawione na Ciebie (jesteś nabywcą)",
+    icon: <DownloadIcon sx={{ fontSize: 20 }} />,
   },
-  NipVatUe: {
-    label: "Numer VAT UE",
-    placeholder: "np. PL1234567890",
-    helperText: "Kod kraju UE (2 litery) + numer VAT UE",
-    validate: (v) =>
-      /^[A-Za-z]{2}[A-Za-z0-9]{2,12}$/.test(v.trim())
-        ? null
-        : "Nieprawidłowy format (np. PL1234567890)",
+  {
+    value: "Subject1",
+    title: "Faktury sprzedaży",
+    description: "Wystawione przez Ciebie (jesteś sprzedawcą)",
+    icon: <FileTextIcon sx={{ fontSize: 20 }} />,
   },
-  InternalId: {
-    label: "Identyfikator wewnętrzny",
-    placeholder: "np. 12345678",
-    helperText: "Wewnętrzny identyfikator podatnika w KSeF",
-    validate: (v) => (v.trim() ? null : "Wymagane"),
+];
+
+const FORMAT_CHOICES: readonly Choice<DownloadFormat>[] = [
+  {
+    value: "xml",
+    title: "XML ZIP",
+    description: "Oryginały z KSeF – do programu księgowego",
+    icon: <CodeIcon sx={{ fontSize: 20 }} />,
   },
-  PeppolId: {
-    label: "Peppol ID",
-    placeholder: "np. iso6523-actorid-upis::0106:1234567890",
-    helperText: "Identyfikator Peppol (schemat::wartość)",
-    validate: (v) =>
-      v.includes("::")
-        ? null
-        : 'Peppol ID musi zawierać separator "::" (np. iso6523-actorid-upis::0106:1234567890)',
+  {
+    value: "pdf",
+    title: "PDF ZIP",
+    description: "Czytelne wizualizacje, tworzone w Twojej przeglądarce",
+    icon: <FileTextIcon sx={{ fontSize: 20 }} />,
   },
-};
+];
 
 const DownloadForm = () => {
-  const [token, setToken] = useState("");
-  const [contextType, setContextType] = useState<
-    "Nip" | "InternalId" | "NipVatUe" | "PeppolId"
-  >("Nip");
-  const [contextValue, setContextValue] = useState("");
-  const [environment, setEnvironment] = useState<"demo" | "prod">("prod");
-  const [subjectType, setSubjectType] = useState<
-    "Subject1" | "Subject2" | "Subject3" | "SubjectAuthorized"
-  >("Subject1");
-  const [dateType, setDateType] = useState<
-    "Issue" | "Invoicing" | "PermanentStorage"
-  >("Invoicing");
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth.label);
-  const [format, setFormat] = useState<"xml" | "pdf">("xml");
-  const [contextValueTouched, setContextValueTouched] = useState(false);
-  const [lastInvoiceCount, setLastInvoiceCount] = useState<number | null>(null);
+  const form = useDownloadForm();
+  const { fields, setters, validation } = form;
+  const tokenInputRef = useRef<HTMLInputElement>(null);
+  const contextInputRef = useRef<HTMLInputElement>(null);
 
-  const contextMeta = CONTEXT_META[contextType];
-  const contextValueError = contextValueTouched
-    ? contextMeta.validate(contextValue)
-    : null;
+  const focusInvalid = (field: InvalidField) =>
+    (field === "token" ? tokenInputRef : contextInputRef).current?.focus();
 
-  const {
-    mutate: downloadInvoices,
-    isPending,
-    isSuccess,
-    isError,
-    error: downloadError,
-    reset: resetDownload,
-    progress,
-  } = useDownloadInvoices();
+  const accessDone = validation.tokenReady && validation.contextReady;
+  const missing = [
+    !validation.tokenReady && "token",
+    !validation.contextReady && "identyfikator firmy",
+  ].filter(Boolean);
 
-  const selectedMonthData =
-    monthLabels.find((m) => m.label === selectedMonth) || defaultMonth;
+  const contextHelper = validation.contextError ? (
+    validation.contextError
+  ) : validation.contextWarning ? (
+    <Box component="span" sx={{ color: brand.amber }}>
+      {validation.contextWarning}
+    </Box>
+  ) : (
+    validation.contextMeta.helperText
+  );
 
-  useEffect(() => {
-    if (isSuccess) {
-      const id = setTimeout(() => resetDownload(), 8000);
-      return () => clearTimeout(id);
+  const renderBody = () => {
+    if (form.isPending) return <DownloadStatus progress={form.progress} />;
+
+    if (form.isSuccess && form.result) {
+      return (
+        <DownloadSuccess
+          invoiceCount={form.result.invoiceCount}
+          fileName={form.result.fileName}
+          onReset={form.resetDownload}
+        />
+      );
     }
-  }, [isSuccess, resetDownload]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setLastInvoiceCount(null);
-    setContextValueTouched(true);
-    if (contextMeta.validate(contextValue)) return;
-
-    const request: DownloadInvoicesRequest = {
-      environment,
-      token,
-      contextType,
-      contextValue,
-      subjectType,
-      dateType,
-      dateFrom: selectedMonthData.dateFrom,
-      dateTo: selectedMonthData.dateTo,
-      format,
-    };
-
-    downloadInvoices(request, {
-      onSuccess: (result) => {
-        setLastInvoiceCount(result.invoiceCount);
-        const objectUrl = URL.createObjectURL(result.blob);
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = result.fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(objectUrl);
-      },
-    });
-  };
-
-  return (
-    <Paper sx={{ p: 4 }}>
+    return (
       <Box
         component="form"
-        onSubmit={handleSubmit}
-        sx={{ display: "flex", flexDirection: "column", gap: 3 }}
+        noValidate
+        onSubmit={(event) => form.handleSubmit(event, focusInvalid)}
+        sx={{ display: "grid", gap: 3 }}
       >
-        <TextField
-          select
-          label="Środowisko"
-          value={environment}
-          onChange={(e) => setEnvironment(e.target.value as "demo" | "prod")}
-          fullWidth
-        >
-          <MenuItem value="demo">Demo</MenuItem>
-          <MenuItem value="prod">Produkcja</MenuItem>
-        </TextField>
-
-        <TextField
-          label="Token KSeF"
-          multiline
-          rows={4}
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="Wklej token KSeF z portalu Ministerstwa Finansów"
-          helperText={
-            <>
-              Token jest szyfrowany lokalnie, zanim opuści Twoją przeglądarkę.
-              <br />
-              <Link
-                href="https://www.podatki.gov.pl/ksef/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Jak wygenerować token? (Instrukcja)
-              </Link>
-            </>
-          }
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start" sx={{ alignSelf: "flex-start", mt: 1 }}>
-                {/* Decorative lock icon — field label provides the accessible name */}
-                <span aria-hidden="true">🔒</span>
-              </InputAdornment>
-            ),
-          }}
-          required
-          fullWidth
-        />
-
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-            gap: 2,
-          }}
-        >
+        <Box sx={{ display: "grid", gap: 2 }}>
+          <SectionTitle index={1} title="Dostęp do KSeF" done={accessDone} />
+          <TokenField
+            value={fields.token}
+            error={validation.tokenError}
+            onChange={setters.setToken}
+            onBlur={setters.touchToken}
+            inputRef={tokenInputRef}
+          />
           <TextField
-            select
-            label="Typ kontekstu"
-            value={contextType}
-            onChange={(e) => {
-              setContextType(
-                e.target.value as
-                  | "Nip"
-                  | "InternalId"
-                  | "NipVatUe"
-                  | "PeppolId",
-              );
-              setContextValue("");
-              setContextValueTouched(false);
-            }}
-            fullWidth
-          >
-            <MenuItem value="Nip">NIP</MenuItem>
-            <MenuItem value="InternalId">InternalId</MenuItem>
-            <MenuItem value="NipVatUe">NIP VAT UE</MenuItem>
-            <MenuItem value="PeppolId">Peppol ID</MenuItem>
-          </TextField>
-          <TextField
-            label={contextMeta.label}
-            value={contextValue}
-            onChange={(e) => {
-              setContextValue(e.target.value);
-              setContextValueTouched(true);
-            }}
-            onBlur={() => setContextValueTouched(true)}
-            placeholder={contextMeta.placeholder}
-            helperText={contextValueError ?? contextMeta.helperText}
-            error={!!contextValueError}
+            label={validation.contextMeta.label}
+            value={fields.contextValue}
+            onChange={(event) => setters.setContextValue(event.target.value)}
+            onBlur={setters.touchContextValue}
+            placeholder={validation.contextMeta.placeholder}
+            helperText={contextHelper}
+            error={!!validation.contextError}
             required
             fullWidth
+            inputRef={contextInputRef}
+            slotProps={{
+              htmlInput: {
+                inputMode: fields.contextType === "Nip" ? "numeric" : "text",
+                autoComplete: "off",
+              },
+              input: {
+                endAdornment:
+                  validation.contextReady && !validation.contextWarning ? (
+                    <InputAdornment position="end">
+                      <CheckIcon sx={{ fontSize: 20, color: brand.green }} />
+                    </InputAdornment>
+                  ) : undefined,
+              },
+            }}
           />
         </Box>
 
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-            gap: 2,
-          }}
-        >
-          <TextField
-            select
-            label="Rola w wyszukiwaniu"
-            value={subjectType}
-            onChange={(e) =>
-              setSubjectType(
-                e.target.value as
-                  | "Subject1"
-                  | "Subject2"
-                  | "Subject3"
-                  | "SubjectAuthorized",
-              )
-            }
-            fullWidth
-          >
-            <MenuItem value="Subject1">Podmiot 1 / sprzedawca</MenuItem>
-            <MenuItem value="Subject2">Podmiot 2 / nabywca</MenuItem>
-            <MenuItem value="Subject3">Podmiot 3</MenuItem>
-            <MenuItem value="SubjectAuthorized">Podmiot upoważniony</MenuItem>
-          </TextField>
-          <TextField
-            select
-            label="Typ daty"
-            value={dateType}
-            onChange={(e) =>
-              setDateType(
-                e.target.value as "Issue" | "Invoicing" | "PermanentStorage",
-              )
-            }
-            fullWidth
-          >
-            <MenuItem value="Invoicing">Przyjęcie w KSeF</MenuItem>
-            <MenuItem value="Issue">Data wystawienia</MenuItem>
-            <MenuItem value="PermanentStorage">Trwały zapis</MenuItem>
-          </TextField>
-        </Box>
-
-        <TextField
-          select
-          label="Okres (miesiąc)"
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-          fullWidth
-        >
-          {monthLabels.map((m) => (
-            <MenuItem key={m.label} value={m.label}>
-              {m.label}
-            </MenuItem>
-          ))}
-        </TextField>
-
         <Box>
-          <Typography variant="body2" color="text.secondary" mb={1}>
-            Format eksportu
-          </Typography>
-          <ToggleButtonGroup
-            exclusive
-            value={format}
-            onChange={(_, v: "xml" | "pdf" | null) => {
-              if (v) setFormat(v);
-            }}
-            aria-label="Format eksportu"
-          >
-            <ToggleButton value="xml">XML ZIP</ToggleButton>
-            <ToggleButton value="pdf">PDF ZIP</ToggleButton>
-          </ToggleButtonGroup>
-          {format === "pdf" && (
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mt: 1, display: "block" }}
-            >
-              KSeF nie dostarcza faktur w formacie PDF. Faktury XML są pobierane
-              z KSeF, a następnie konwertowane do PDF lokalnie w Twojej
-              przeglądarce.
-            </Typography>
-          )}
+          <SectionTitle index={2} title="Co pobrać?" done hint={fields.selectedMonth} />
+          <Box sx={{ display: "grid", gap: 2 }}>
+            <MonthPicker value={fields.selectedMonth} onChange={setters.setSelectedMonth} />
+            <ChoiceCards
+              label="Rodzaj faktur"
+              value={fields.subjectType as "Subject1" | "Subject2"}
+              options={SUBJECT_CHOICES}
+              onChange={(value: SubjectType) => setters.setSubjectType(value)}
+            />
+            <ChoiceCards
+              label="Format paczki"
+              value={fields.format}
+              options={FORMAT_CHOICES}
+              onChange={setters.setFormat}
+            />
+          </Box>
         </Box>
 
-        <Button
-          type="submit"
-          variant="contained"
-          color="secondary"
-          size="large"
-          disabled={isPending}
-          fullWidth
-          sx={{ py: 1.5 }}
-        >
-          {isPending ? "Pobieranie…" : "Przestań ręcznie pobierać faktury"}
-        </Button>
+        <AdvancedOptions
+          contextType={fields.contextType}
+          subjectType={fields.subjectType}
+          dateType={fields.dateType}
+          onContextTypeChange={setters.setContextType}
+          onSubjectTypeChange={setters.setSubjectType}
+          onDateTypeChange={setters.setDateType}
+        />
 
-        <Alert severity="info" variant="outlined">
-          Oszczędź średnio 15 minut przy każdym rozliczeniu miesięcznym.
-        </Alert>
-
-        {isPending && (
-          <Alert
-            severity="info"
-            icon={<CircularProgress size={18} color="inherit" />}
-          >
-            <Typography variant="body2" sx={{ mb: progress?.total ? 1.5 : 0 }}>
-              {progress?.message ??
-                "Łączenie z KSeF i pobieranie faktur. To może potrwać kilka minut przy dużej liczbie dokumentów."}
-            </Typography>
-            {progress?.total != null && progress.total > 0 && (
-              <LinearProgress
-                variant="determinate"
-                value={Math.round(
-                  ((progress.current ?? 0) / progress.total) * 100,
-                )}
-                sx={{ borderRadius: 1 }}
-              />
-            )}
-          </Alert>
-        )}
-
-        {isSuccess && (
-          <Stack spacing={1.5}>
-            <Alert severity="success">
-              ✓ Pomyślnie pobrano {lastInvoiceCount ?? "wybraną liczbę"} faktur.
-              Dane nigdy nie opuszczają Twojej przeglądarki.
-            </Alert>
-            <Alert severity="info" variant="outlined">
-              <AlertTitle>Udało się!</AlertTitle>
-              Zaoszczędziłeś właśnie sporo czasu. Jeśli chcesz, możesz nam za to
-              podziękować kawą. ☕{" "}
-              <Link
-                href="https://buycoffee.to/codelitehouse"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Postaw kawę
-              </Link>
-            </Alert>
-          </Stack>
-        )}
-        {isError && (
-          <Alert severity="error">
-            <AlertTitle>Błąd</AlertTitle>
-            {downloadError?.message ?? "Wystąpił nieznany błąd."}
-            {downloadError instanceof KsefApiError &&
-              downloadError.details != null &&
-              typeof downloadError.details === "object" && (
+        {form.isError && (
+          <Alert severity="error" onClose={form.resetDownload}>
+            <AlertTitle>Nie udało się pobrać faktur</AlertTitle>
+            {form.error?.message ?? "Wystąpił nieznany błąd."}
+            {form.error instanceof KsefApiError &&
+              form.error.details != null &&
+              typeof form.error.details === "object" && (
                 <Box component="details" sx={{ mt: 1.5 }}>
-                  <Box
-                    component="summary"
-                    sx={{ cursor: "pointer", fontSize: "0.8em", opacity: 0.75 }}
-                  >
+                  <Box component="summary" sx={{ cursor: "pointer", fontSize: "0.8em", opacity: 0.75 }}>
                     Szczegóły odpowiedzi KSeF
                   </Box>
                   <Box
                     component="pre"
-                    sx={{
-                      mt: 0.5,
-                      fontSize: "0.75em",
-                      whiteSpace: "pre-wrap",
-                      wordBreak: "break-all",
-                      opacity: 0.8,
-                    }}
+                    sx={{ mt: 0.5, fontSize: "0.75em", whiteSpace: "pre-wrap", wordBreak: "break-all", opacity: 0.8 }}
                   >
-                    {JSON.stringify(downloadError.details, null, 2)}
+                    {JSON.stringify(form.error.details, null, 2)}
                   </Box>
                 </Box>
               )}
           </Alert>
         )}
+
+        <Box>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            fullWidth
+            startIcon={<DownloadIcon />}
+            sx={{
+              position: "relative",
+              overflow: "hidden",
+              py: 1.6,
+              fontSize: "1.05rem",
+              color: "#04210f",
+              background: brand.gradientCta,
+              backgroundSize: "140% 100%",
+              boxShadow: "0 14px 34px -14px rgba(34,197,94,.8)",
+              transition: "transform .2s, box-shadow .2s, background-position .4s",
+              "&:hover": {
+                transform: "translateY(-2px)",
+                backgroundPosition: "100% 0",
+                boxShadow: "0 18px 40px -14px rgba(56,189,248,.85)",
+              },
+              "&::after": {
+                content: '""',
+                position: "absolute",
+                inset: 0,
+                width: "35%",
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent)",
+                animation: `${shine} 3.6s ease-in-out infinite`,
+              },
+            }}
+          >
+            Pobierz paczkę ZIP z fakturami
+          </Button>
+          <Typography
+            variant="caption"
+            color={missing.length ? "text.secondary" : "text.primary"}
+            sx={{ display: "block", textAlign: "center", mt: 1.25 }}
+          >
+            {missing.length
+              ? `Do pobrania brakuje: ${missing.join(", ")}.`
+              : `${fields.selectedMonth} · ${fields.format === "xml" ? "XML" : "PDF"} · token zaszyfrujemy lokalnie`}
+          </Typography>
+        </Box>
       </Box>
-    </Paper>
+    );
+  };
+
+  return (
+    <GlowCard
+      id="pobierz"
+      sx={{
+        p: { xs: 2.5, sm: 4 },
+        scrollMarginTop: "88px",
+        boxShadow: "0 0 0 1px rgba(56,189,248,.08), 0 40px 90px -40px rgba(56,189,248,.45)",
+      }}
+    >
+      <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, justifyContent: "space-between", gap: 2, mb: 3 }}>
+        <Box>
+          <Typography component="h2" sx={{ fontWeight: 800, fontSize: "1.45rem", letterSpacing: "-0.02em" }}>
+            Pobierz faktury
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Token, NIP, miesiąc – i gotowe.
+          </Typography>
+        </Box>
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={fields.environment}
+          disabled={form.isPending}
+          onChange={(_, value: EnvironmentName | null) => value && setters.setEnvironment(value)}
+          aria-label="Środowisko KSeF"
+        >
+          <ToggleButton value="prod" sx={{ px: 1.5 }}>Produkcja</ToggleButton>
+          <ToggleButton value="demo" sx={{ px: 1.5 }}>Demo</ToggleButton>
+        </ToggleButtonGroup>
+      </Box>
+      {renderBody()}
+    </GlowCard>
   );
 };
 
