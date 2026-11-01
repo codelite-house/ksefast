@@ -14,6 +14,7 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 - Formularz pobierania w trzech krokach logicznych: token (z przyciskiem "Wklej" i podglądem), NIP (auto-formatowanie wklejki, ostrzeżenie o błędnej sumie kontrolnej), wybór miesiąca kafelkami oraz rodzaju faktur i formatu kartami; opcje techniczne (rodzaj identyfikatora, typ daty, rola) schowane w "Opcjach zaawansowanych"
 - Widok postępu pobierania (pierścień, etapy i liczniki na żywo) oraz ekran sukcesu z konfetti i przyciskiem "Pobierz kolejny miesiąc"
 - Wektorowy znak KSeFast i `favicon.svg` (do czasu nowego logo)
+- Animowane logo KSeFast w SVG (`frontend/src/images/logo/`): animacja wejścia (pierścień się rozkręca i hamuje, trzy paski dolatują z lewej i zatrzymują się przy logo, litery wjeżdżają po kolei, na końcu połysk), loader (pierścień robi półobrót, pauza, drugi półobrót, pauza – paski w tym samym rytmie) oraz wersja statyczna; każda w wariancie na jasne i ciemne tło, plus `preview.html` do podglądu. Animacje wyłączają się przy `prefers-reduced-motion`. Logo nie jest jeszcze podpięte w stronie
 - Data nadania numeru KSeF w nagłówku PDF faktury (jak w portalu MF)
 - Lokalne CLI (`pnpm cli download`) do pobierania faktur z KSeF do wskazanego folderu – bez przeglądarki i proxy, z pomijaniem faktur już pobranych, pauzami i ponawianiem przy limitach KSeF (16 pobrań/min, 64/h) oraz zapisem PDF (oficjalny generator MF) i XML
 - Licencja MIT (`LICENSE`) dla projektu

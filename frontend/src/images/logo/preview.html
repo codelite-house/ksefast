@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KSeFast – podgląd animowanego logo</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 32px 20px 56px; background: #060a16; color: #cbd5e1; font: 15px/1.5 system-ui, sans-serif; }
+  h1 { margin: 0 0 4px; font-size: 22px; color: #f8fafc; }
+  p.lead { margin: 0 0 28px; color: #94a3b8; max-width: 70ch; }
+  .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); max-width: 1180px; }
+  .card { border-radius: 18px; padding: 18px 20px 20px; }
+  .card.dark { background: #0b1020; border: 1px solid #1e293b; }
+  .card.light { background: #fff; color: #334155; }
+  .card h2 { margin: 0 0 2px; font-size: 14px; font-weight: 650; }
+  .card small { display: block; margin-bottom: 8px; opacity: .65; }
+  .card img { display: block; width: 100%; height: auto; }
+  button { margin-top: 10px; padding: 7px 14px; border-radius: 999px; border: 1px solid #475569; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+  button:hover { background: rgba(148, 163, 184, .18); }
+  .small .card img { max-width: 220px; margin: 6px auto 0; }
+</style>
+</head>
+<body>
+<h1>KSeFast – animowane logo</h1>
+<p class="lead">Animacja wejścia: pierścień się rozkręca i hamuje, trzy paski dolatują z lewej i zatrzymują się przy logo, litery wjeżdżają jedna po drugiej, na końcu przebiega połysk. Loader: pierścień robi półobrót (szybki start, miękkie hamowanie), pauza, drugi półobrót, pauza – a paski w tym samym rytmie dolatują od nowa.</p>
+
+<div class="grid">
+  <div class="card dark">
+    <h2>Animacja wejścia – ciemne tło</h2><small>ksefast-logo-animated-dark.svg</small>
+    <img data-src="ksefast-logo-animated-dark.svg" alt="KSeFast">
+    <button type="button">Odtwórz ponownie</button>
+  </div>
+  <div class="card light">
+    <h2>Animacja wejścia – jasne tło</h2><small>ksefast-logo-animated.svg</small>
+    <img data-src="ksefast-logo-animated.svg" alt="KSeFast">
+    <button type="button">Odtwórz ponownie</button>
+  </div>
+  <div class="card dark">
+    <h2>Loader – ciemne tło</h2><small>ksefast-logo-loader-dark.svg</small>
+    <img data-src="ksefast-logo-loader-dark.svg" alt="KSeFast – ładowanie">
+    <button type="button">Zacznij od początku</button>
+  </div>
+  <div class="card light">
+    <h2>Loader – jasne tło</h2><small>ksefast-logo-loader.svg</small>
+    <img data-src="ksefast-logo-loader.svg" alt="KSeFast – ładowanie">
+    <button type="button">Zacznij od początku</button>
+  </div>
+</div>
+
+<div class="grid small" style="margin-top:20px">
+  <div class="card dark"><h2>Statyczne – ciemne tło</h2><small>ksefast-logo-dark.svg</small><img data-src="ksefast-logo-dark.svg" alt="KSeFast"></div>
+  <div class="card light"><h2>Statyczne – jasne tło</h2><small>ksefast-logo.svg</small><img data-src="ksefast-logo.svg" alt="KSeFast"></div>
+</div>
+
+<script>
+  const load = (img) => { img.src = img.dataset.src + '?r=' + Date.now(); };
+  document.querySelectorAll('img[data-src]').forEach(load);
+  document.querySelectorAll('.card button').forEach((b) => b.addEventListener('click', () => load(b.parentElement.querySelector('img'))));
+</script>
+</body>
+</html>
