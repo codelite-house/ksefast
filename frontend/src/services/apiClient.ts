@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+// `import.meta.env` istnieje tylko w Vite; opcjonalny dostęp pozwala importować moduł także w Node (CLI).
+const API_BASE = import.meta.env?.VITE_API_BASE_URL || "/api";
 
 export class KsefApiError extends Error {
   constructor(

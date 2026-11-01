@@ -1,4 +1,6 @@
 ﻿import { buildKsefQrUrl } from "./lib/buildKsefQrUrl";
+import { buildInvoiceFileName } from "./lib/invoiceFileName";
+import { formatKsefNumberDate } from "./lib/formatKsefNumberDate";
 import { mapWithConcurrency } from "./lib/mapWithConcurrency";
 import JSZip from "jszip";
 import { generateInvoice } from "@akmf/ksef-fe-invoice-converter";
@@ -10,23 +12,6 @@ import type {
 } from "./types";
 
 const PDF_CONCURRENCY = 4;
-
-const sanitizeFilePart = (value: string): string =>
-  value
-    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, "-")
-    .replace(/\s+/g, "_")
-    .slice(0, 80);
-
-const buildInvoiceFileName = (
-  invoice: DownloadedInvoice,
-  extension: string,
-): string => {
-  const invoiceNumber = sanitizeFilePart(
-    invoice.metadata.invoiceNumber || invoice.metadata.ksefNumber,
-  );
-  const ksefNumber = sanitizeFilePart(invoice.metadata.ksefNumber);
-  return `${invoiceNumber}__${ksefNumber}.${extension}`;
-};
 
 const manifestEntry = (metadata: InvoiceMetadata) => ({
   ksefNumber: metadata.ksefNumber,
@@ -44,6 +29,32 @@ const addXmlInvoices = (zip: JSZip, invoices: DownloadedInvoice[]): void => {
   }
 };
 
+/**
+ * PDF jednej faktury oficjalnym generatorem MF, z kodem QR weryfikacji w KSeF.
+ */
+export const generateInvoicePdf = async (
+  invoice: DownloadedInvoice,
+): Promise<ArrayBuffer> => {
+  const xmlFile = new File([invoice.xml], `${invoice.metadata.ksefNumber}.xml`, {
+    type: "text/xml",
+  });
+  const qrCode = await buildKsefQrUrl(
+    invoice.xml,
+    invoice.metadata.seller.nip || "",
+    invoice.metadata.issueDate,
+  );
+  const pdf = await generateInvoice(
+    xmlFile,
+    {
+      nrKSeF: invoice.metadata.ksefNumber,
+      acDate: formatKsefNumberDate(invoice.metadata),
+      qrCode,
+    },
+    "blob",
+  );
+  return pdf.arrayBuffer();
+};
+
 const addPdfInvoices = async (
   zip: JSZip,
   invoices: DownloadedInvoice[],
@@ -51,27 +62,10 @@ const addPdfInvoices = async (
   const pdfEntries = await mapWithConcurrency(
     invoices,
     PDF_CONCURRENCY,
-    async (invoice) => {
-      const xmlFile = new File(
-        [invoice.xml],
-        `${invoice.metadata.ksefNumber}.xml`,
-        { type: "text/xml" },
-      );
-      const qrCode = await buildKsefQrUrl(
-        invoice.xml,
-        invoice.metadata.seller.nip || "",
-        invoice.metadata.issueDate,
-      );
-      const pdf = await generateInvoice(
-        xmlFile,
-        { nrKSeF: invoice.metadata.ksefNumber, qrCode },
-        "blob",
-      );
-      return {
-        name: buildInvoiceFileName(invoice, "pdf"),
-        buffer: await pdf.arrayBuffer(),
-      };
-    },
+    async (invoice) => ({
+      name: buildInvoiceFileName(invoice, "pdf"),
+      buffer: await generateInvoicePdf(invoice),
+    }),
   );
 
   for (const { name, buffer } of pdfEntries) {

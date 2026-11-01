@@ -17,7 +17,7 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@akmf/ksef-fe-invoice-converter": [
-        "./vendor/ksef-pdf-generator/index.d.ts"
+        "./src/ksef-pdf-generator.d.ts"
       ]
     }
   },

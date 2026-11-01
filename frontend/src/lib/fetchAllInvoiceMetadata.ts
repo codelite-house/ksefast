@@ -4,6 +4,7 @@ import type {
   EnvironmentName,
   InvoiceMetadata,
   InvoiceQueryFilters,
+  QueryInvoicesResponse,
 } from "../types";
 
 export const MAX_INVOICES_PER_EXPORT = 2000;
@@ -23,10 +24,18 @@ const getMetadataDate = (
   }
 };
 
+export type QueryMetadataPage = (
+  filters: InvoiceQueryFilters,
+  pageOffset: number,
+  pageSize: number,
+) => Promise<QueryInvoicesResponse>;
+
 export interface FetchAllInvoiceMetadataOptions {
   maxInvoices?: number;
   pageSize?: number;
   onFoundCount?: (count: number) => void;
+  /** Własne pobranie strony metadanych (domyślnie przez proxy; CLI woła KSeF wprost). */
+  query?: QueryMetadataPage;
 }
 
 /**
@@ -41,6 +50,10 @@ export const fetchAllInvoiceMetadata = async (
 ): Promise<InvoiceMetadata[]> => {
   const maxInvoices = options.maxInvoices ?? MAX_INVOICES_PER_EXPORT;
   const pageSize = options.pageSize ?? METADATA_PAGE_SIZE;
+  const query: QueryMetadataPage =
+    options.query ??
+    ((pageFilters, offset, size) =>
+      queryInvoiceMetadata(environment, accessToken, pageFilters, offset, size));
 
   const allInvoices: InvoiceMetadata[] = [];
   const seenKsefNumbers = new Set<string>();
@@ -50,9 +63,7 @@ export const fetchAllInvoiceMetadata = async (
   let pageOffset = 0;
 
   while (true) {
-    const page = await queryInvoiceMetadata(
-      environment,
-      accessToken,
+    const page = await query(
       {
         ...filters,
         dateRange: {
