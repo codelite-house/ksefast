@@ -14,9 +14,13 @@ import { useDownloadInvoices } from "./useDownloadInvoices";
 
 export type InvalidField = "token" | "contextValue";
 
+// Środowisko KSeF wybiera serwer (zmienna KSEF_ENV) – od 88d5816 parametr ?environment= jest przez
+// niego ignorowany, więc formularz go nie wystawia. Wartość jest tu tylko dlatego, że wymaga jej typ
+// żądania i współdzielone moduły (m.in. CLI, gdzie środowisko ma realne znaczenie).
+const REQUEST_ENVIRONMENT: EnvironmentName = "prod";
+
 /** Stan, walidacja i wysyłka formularza pobierania faktur (widok: DownloadForm). */
 export const useDownloadForm = () => {
-  const [environment, setEnvironment] = useState<EnvironmentName>("prod");
   const [token, setToken] = useState("");
   const [contextType, setContextTypeState] = useState<ContextIdentifierType>("Nip");
   const [contextValue, setContextValueState] = useState("");
@@ -69,7 +73,7 @@ export const useDownloadForm = () => {
     if (!contextReady) return focusInvalid?.("contextValue");
 
     const request: DownloadInvoicesRequest = {
-      environment,
+      environment: REQUEST_ENVIRONMENT,
       token,
       contextType,
       contextValue,
@@ -96,7 +100,6 @@ export const useDownloadForm = () => {
 
   return {
     fields: {
-      environment,
       token,
       contextType,
       contextValue,
@@ -106,7 +109,6 @@ export const useDownloadForm = () => {
       format,
     },
     setters: {
-      setEnvironment,
       setToken,
       setContextType,
       setContextValue,

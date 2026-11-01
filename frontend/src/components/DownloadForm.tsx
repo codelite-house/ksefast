@@ -5,15 +5,13 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import Typography from "@mui/material/Typography";
 
 import { shine } from "../animations";
 import { useDownloadForm, type InvalidField } from "../hooks/useDownloadForm";
 import { KsefApiError } from "../services/apiClient";
 import { brand } from "../theme";
-import type { DownloadFormat, EnvironmentName, SubjectType } from "../types";
+import type { DownloadFormat, SubjectType } from "../types";
 import AdvancedOptions from "./download/AdvancedOptions";
 import ChoiceCards, { type Choice } from "./download/ChoiceCards";
 import DownloadStatus from "./download/DownloadStatus";
@@ -243,26 +241,13 @@ const DownloadForm = () => {
         boxShadow: "0 0 0 1px rgba(56,189,248,.08), 0 40px 90px -40px rgba(56,189,248,.45)",
       }}
     >
-      <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, justifyContent: "space-between", gap: 2, mb: 3 }}>
-        <Box>
-          <Typography component="h2" sx={{ fontWeight: 800, fontSize: "1.45rem", letterSpacing: "-0.02em" }}>
-            Pobierz faktury
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Token, NIP, miesiąc – i gotowe.
-          </Typography>
-        </Box>
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          value={fields.environment}
-          disabled={form.isPending}
-          onChange={(_, value: EnvironmentName | null) => value && setters.setEnvironment(value)}
-          aria-label="Środowisko KSeF"
-        >
-          <ToggleButton value="prod" sx={{ px: 1.5 }}>Produkcja</ToggleButton>
-          <ToggleButton value="demo" sx={{ px: 1.5 }}>Demo</ToggleButton>
-        </ToggleButtonGroup>
+      <Box sx={{ mb: 3 }}>
+        <Typography component="h2" sx={{ fontWeight: 800, fontSize: "1.45rem", letterSpacing: "-0.02em" }}>
+          Pobierz faktury
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Token, NIP, miesiąc – i gotowe.
+        </Typography>
       </Box>
       {renderBody()}
     </GlowCard>

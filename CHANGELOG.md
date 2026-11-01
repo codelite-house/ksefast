@@ -24,6 +24,7 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ### Zmieniono
 
+- Usunięto z formularza przełącznik "Produkcja/Demo" – od 17.08 serwer ignoruje parametr `?environment=` i środowisko KSeF wybiera wyłącznie zmienną `KSEF_ENV` (staging = test, produkcja = prawdziwy KSeF), więc przełącznik nic nie robił i wprowadzał w błąd
 - Wdrożenie: jeden chart Helm `ksefast` (komponenty `api` i `app`, jeden release w ArgoCD – tak jak jobsonar) zamiast dwóch osobnych chartów `ksefast-backend` i `ksefast-frontend`; CI publikuje jeden chart na wersję
 - Obraz frontendu: adres API w nginx jest teraz szablonem (`BACKEND_HOST`, `BACKEND_PORT`, domyślnie `backend:3001` – `docker compose` działa bez zmian)
 - Strona przestała używać ciężkiego `logo.png` (2,2 MB, szare tło) – w nagłówku i stopce jest wektorowy `BrandMark`
