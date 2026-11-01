@@ -40,4 +40,4 @@ W zakresie:
 Poza zakresem:
 
 - Samo API KSeF — zgłoś do Ministerstwa Finansów
-- Vendored generator PDF (`frontend/vendor/ksef-pdf-generator`) — zgłoś upstream do [CIRFMF/ksef-pdf-generator](https://github.com/CIRFMF/ksef-pdf-generator)
+- Generator PDF MF (zależność `@akmf/ksef-fe-invoice-converter`) — zgłoś upstream do [CIRFMF/ksef-pdf-generator](https://github.com/CIRFMF/ksef-pdf-generator)
