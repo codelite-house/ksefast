@@ -1,0 +1,10 @@
+{
+  "name": "ksefast-cli",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Lokalne CLI KSeFast: pobiera faktury z KSeF do folderu (bez proxy i przeglądarki)",
+  "engines": {
+    "node": ">=20"
+  }
+}

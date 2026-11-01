@@ -62,7 +62,7 @@ Przeglądarka                             KSeF API (MF)
 
 - **Frontend**: React + Vite + TypeScript + Material UI
 - **Serwer proxy**: Node.js Express (uruchamiany przez Docker Compose)
-- **PDF**: [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) – vendored lokalnie
+- **PDF**: [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) – oficjalny generator MF, zależność przypięta do commita (patrz niżej)
 - **Crypto**: jsrsasign (RSA-OAEP szyfrowanie tokena w przeglądarce)
 
 ## Lokalny development (bez Dockera)
@@ -86,6 +86,26 @@ Wymagane zmienne środowiskowe backendu:
 
 Backend wymaga co najmniej jednej formy autoryzacji (`CONTACT_SERVICE_BEARER_TOKEN` lub `CONTACT_SERVICE_API_KEY`).
 
+## CLI – pobieranie faktur z linii poleceń
+
+Do automatyzacji (np. comiesięczne pobranie faktur kosztowych do folderu księgowego) jest lokalne CLI.
+Loguje się do KSeF wprost (CORS dotyczy tylko przeglądarki, więc proxy nie jest potrzebne),
+a przez ten sam kod co aplikacja webowa szyfruje token, stronicuje metadane i generuje PDF oficjalnym generatorem MF.
+
+```bash
+pnpm install
+export KSEF_TOKEN=...   # w PowerShell: $env:KSEF_TOKEN = "..."
+pnpm cli download --nip 1234567890 --month 2026-10 --out ./faktury/2026-10
+```
+
+- Token KSeF jest czytany **wyłącznie** ze zmiennej `KSEF_TOKEN` (nie z argumentów, żeby nie trafiał do historii poleceń).
+- `--month` oznacza miesiąc przyjęcia faktury w KSeF (data z numeru KSeF); domyślnie pobierane są faktury zakupowe (`--subject Subject2`).
+- Do `--out` trafiają PDF-y, a oryginalne XML-e do `--out/XML` (`--format`, `--xml-dir`).
+- Faktury, których numer KSeF występuje już w nazwie pliku w folderze docelowym, są pomijane – można uruchamiać wielokrotnie.
+- KSeF limituje pobieranie faktur (16/min, 64/h): CLI robi pauzy między pobraniami i ponawia po `429`.
+  Gdy limit godzinowy zostanie wyczerpany, kończy z kodem `2` – kolejne uruchomienie dociąga brakujące.
+- `--dry-run` pokazuje, co zostałoby pobrane. Pełna lista opcji: `pnpm cli --help`. Testy: `pnpm test:cli`.
+
 ## Struktura projektu
 
 ```
@@ -93,8 +113,9 @@ ksefast/
 ├── frontend/src/
 │   ├── services/         ← komunikacja z KSeF przez proxy
 │   ├── hooks/            ← logika pobierania (TanStack Query)
-│   ├── lib/              ← crypto, QR, utils
+│   ├── lib/              ← crypto, QR, logowanie tokenem, utils (współdzielone z CLI)
 │   └── components/       ← UI (HeroCopy, DownloadForm, sekcje strony, ui/ – wspólne klocki)
+├── cli/src/              ← CLI: klient KSeF wprost, pobieranie do folderu (Node, uruchamiane przez tsx)
 ├── server/server.ts      ← proxy Express (bezstanowy, bez logowania)
 ├── docs/openapi/         ← specyfikacje OpenAPI KSeF v2 (źródło prawdy)
 └── docker-compose.yml
@@ -112,4 +133,8 @@ Jeśli odkryłeś lukę bezpieczeństwa, zapoznaj się z [SECURITY.md](SECURITY.
 
 [MIT](LICENSE) © 2026 Codelite House
 
-Vendored dependency: [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) (pakiet `@akmf/ksef-fe-invoice-converter`) – [MIT](frontend/vendor/ksef-pdf-generator/LICENSE) © 2025 CIRF
+Generator PDF: [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) (pakiet `@akmf/ksef-fe-invoice-converter`) © CIRF.
+MF nie publikuje go w npm ani jako zbudowanej paczki, więc `frontend/package.json` wskazuje na archiwum źródeł konkretnego commita
+(wersja 1.1.46 – ta sama, której używa portal MF); sumy kontrolne są w `pnpm-lock.yaml` i `package-lock.json`.
+Aktualizacja: podmień hash commita w `frontend/package.json` i uruchom `pnpm install` oraz `npm install --package-lock-only`.
+Vite i CLI mapują alias `@akmf/ksef-fe-invoice-converter` na `src/index.ts` tej paczki w `node_modules`.
