@@ -35,9 +35,9 @@ export const useContactForm = () => {
       message,
       messageType,
       source: "ksefast-web",
+      // Tylko to, co opisuje polityka prywatności (bez userAgent).
       additionalProperties: {
         page: window.location.pathname,
-        userAgent: navigator.userAgent,
       },
     });
   };

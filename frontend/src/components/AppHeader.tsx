@@ -9,10 +9,10 @@ import BrandMark from "./ui/BrandMark";
 import { GithubIcon } from "./ui/icons";
 
 const NAV_LINKS = [
-  { href: "#jak-to-dziala", label: "Jak to działa" },
-  { href: "#prywatnosc", label: "Prywatność" },
-  { href: "#porownanie", label: "Porównanie" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#jak-to-dziala", label: "Jak to działa" },
+  { href: "/#prywatnosc", label: "Prywatność" },
+  { href: "/#porownanie", label: "Porównanie" },
+  { href: "/#faq", label: "FAQ" },
 ] as const;
 
 const AppHeader = () => {
@@ -45,7 +45,7 @@ const AppHeader = () => {
         }}
       >
         <Link
-          href="#top"
+          href="/#top"
           underline="none"
           aria-label="KSeFast – początek strony"
           sx={{ display: "flex", minWidth: 0, "& img": { height: { xs: 44, sm: 56 } } }}
@@ -91,7 +91,7 @@ const AppHeader = () => {
             <GithubIcon />
           </IconButton>
           <Button
-            href="#pobierz"
+            href="/#pobierz"
             variant="contained"
             color="secondary"
             size="small"

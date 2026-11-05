@@ -1,4 +1,4 @@
-import { apiFetch } from "./apiClient";
+import { ksefFetch, type KsefRequestControl } from "./apiClient";
 import type {
   EnvironmentName,
   InvoiceQueryFilters,
@@ -15,8 +15,9 @@ export const queryInvoiceMetadata = (
   filters: InvoiceQueryFilters,
   pageOffset = 0,
   pageSize = 50,
+  control?: KsefRequestControl,
 ): Promise<QueryInvoicesResponse> =>
-  apiFetch<QueryInvoicesResponse>(
+  ksefFetch<QueryInvoicesResponse>(
     `/invoices/metadata?environment=${environment}&pageOffset=${pageOffset}&pageSize=${pageSize}`,
     {
       method: "POST",
@@ -26,18 +27,28 @@ export const queryInvoiceMetadata = (
       },
       body: JSON.stringify(filters),
     },
+    control,
   );
 
 /**
- * GET /invoices/download  (proxy → GET /invoices/ksef/{ksefNumber} w KSeF v2)
- * Pobierz XML faktury po numerze KSeF.
+ * POST /invoices/download  (proxy → GET /invoices/ksef/{ksefNumber} w KSeF v2)
+ * Pobierz XML faktury po numerze KSeF. Numer idzie w treści, nie w adresie – nie trafia do logów dostępowych.
  */
 export const downloadInvoiceXml = (
   environment: EnvironmentName,
   accessToken: string,
   ksefNumber: string,
+  control?: KsefRequestControl,
 ): Promise<string> =>
-  apiFetch<string>(
-    `/invoices/download?environment=${environment}&ksefNumber=${encodeURIComponent(ksefNumber)}`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
+  ksefFetch<string>(
+    `/invoices/download?environment=${environment}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ ksefNumber }),
+    },
+    control,
   );

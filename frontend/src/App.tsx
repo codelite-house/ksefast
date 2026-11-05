@@ -12,13 +12,30 @@ import DownloadForm from "./components/DownloadForm";
 import FaqSection from "./components/FaqSection";
 import HeroCopy from "./components/HeroCopy";
 import HowItWorks from "./components/HowItWorks";
+import PrivacyPolicyPage from "./components/PrivacyPolicyPage";
 import PrivacySection from "./components/PrivacySection";
+import { PRIVACY_POLICY_PATH } from "./content/privacyPolicy";
 import SupportCard from "./components/SupportCard";
 import AuroraBackground from "./components/ui/AuroraBackground";
 import Reveal from "./components/ui/Reveal";
 import Section, { GradientText } from "./components/ui/Section";
 
 const App = () => {
+  // Jedyna podstrona – bez routera; nginx i tak serwuje index.html dla każdej ścieżki.
+  if (window.location.pathname.replace(/\/$/, "") === PRIVACY_POLICY_PATH) {
+    return (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <AuroraBackground />
+        <AppHeader />
+        <Container maxWidth={false} sx={{ maxWidth: 1240, px: { xs: 2, sm: 3 } }}>
+          <PrivacyPolicyPage />
+          <AppFooter />
+        </Container>
+      </ThemeProvider>
+    );
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />

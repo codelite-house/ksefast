@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
 
+import { OPERATOR, PRIVACY_POLICY_PATH } from "../content/privacyPolicy";
 import { brand } from "../theme";
 import BrandMark from "./ui/BrandMark";
 
@@ -27,10 +28,11 @@ const AppFooter = () => (
         <Link href="https://github.com/codelitehouse" target="_blank" rel="noreferrer">
           codelitehouse
         </Link>
-        .
+        . Operator ksefast.pl: {OPERATOR.name}, NIP {OPERATOR.nip}.
       </Typography>
     </Box>
     <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
+      <Link href={PRIVACY_POLICY_PATH}>Polityka prywatności</Link> ·{" "}
       <Link href="https://github.com/codelitehouse/ksefast" target="_blank" rel="noreferrer">
         GitHub
       </Link>{" "}

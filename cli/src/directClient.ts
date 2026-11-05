@@ -1,4 +1,10 @@
 import type { TokenAuthApi } from "../../frontend/src/lib/authenticateWithToken";
+import {
+  INVOICE_DOWNLOAD_PAUSE_MS,
+  RateLimitedError,
+  createPacer,
+  fetchWithKsefRetry,
+} from "../../frontend/src/lib/ksefRateLimit";
 import type {
   EnvironmentName,
   InitTokenAuthRequest,
@@ -27,13 +33,7 @@ export class KsefHttpError extends Error {
   }
 }
 
-/** KSeF kazał czekać dłużej, niż jesteśmy gotowi (limit godzinowy) – wynik częściowy. */
-export class RateLimitedError extends Error {
-  constructor(readonly retryAfterSec: number) {
-    super(`Limit zapytań KSeF – spróbuj ponownie za ok. ${Math.max(1, Math.ceil(retryAfterSec / 60))} min`);
-    this.name = "RateLimitedError";
-  }
-}
+export { RateLimitedError };
 
 export interface DirectClientOptions {
   baseUrl: string;
@@ -89,13 +89,13 @@ export const createDirectClient = (options: DirectClientOptions): DirectClient =
     fetchFn = fetch,
     sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
     now = Date.now,
-    downloadPauseMs = 4500,
+    downloadPauseMs = INVOICE_DOWNLOAD_PAUSE_MS,
     maxRetryAfterSec = 90,
     maxRetries = 3,
     timeoutMs = 30_000,
   } = options;
 
-  let lastDownloadAt = 0;
+  const downloads = createPacer(downloadPauseMs, { now, sleep });
 
   const send = async (
     method: string,
@@ -106,33 +106,20 @@ export const createDirectClient = (options: DirectClientOptions): DirectClient =
     if (request.token) headers.Authorization = `Bearer ${request.token}`;
     if (request.body !== undefined) headers["Content-Type"] = "application/json";
 
-    for (let attempt = 0; ; attempt++) {
-      const res = await fetchFn(`${baseUrl}${path}`, {
-        method,
-        headers,
-        body: request.body === undefined ? undefined : JSON.stringify(request.body),
-        signal: AbortSignal.timeout(timeoutMs),
-      });
-
-      if (res.status === 429) {
-        await res.arrayBuffer();
-        const waitSec = Number(res.headers.get("retry-after")) || 30;
-        if (waitSec > maxRetryAfterSec || attempt >= maxRetries) {
-          throw new RateLimitedError(waitSec);
-        }
-        await sleep((waitSec + 1) * 1000);
-        continue;
-      }
-      if (res.status >= 500 && attempt < maxRetries) {
-        await res.arrayBuffer();
-        await sleep(1000 * 2 ** attempt);
-        continue;
-      }
-      if (!res.ok) {
-        throw new KsefHttpError(await describeError(res, method, path), res.status);
-      }
-      return res;
+    const res = await fetchWithKsefRetry(
+      () =>
+        fetchFn(`${baseUrl}${path}`, {
+          method,
+          headers,
+          body: request.body === undefined ? undefined : JSON.stringify(request.body),
+          signal: AbortSignal.timeout(timeoutMs),
+        }),
+      { sleep, maxRetryAfterSec, maxRetries },
+    );
+    if (!res.ok) {
+      throw new KsefHttpError(await describeError(res, method, path), res.status);
     }
+    return res;
   };
 
   const json = async <T>(res: Response): Promise<T> => (await res.json()) as T;
@@ -164,16 +151,14 @@ export const createDirectClient = (options: DirectClientOptions): DirectClient =
         ),
       ),
 
-    downloadInvoiceXml: async (accessToken, ksefNumber) => {
-      const wait = lastDownloadAt + downloadPauseMs - now();
-      if (lastDownloadAt && wait > 0) await sleep(wait);
-      const res = await send("GET", `/invoices/ksef/${encodeURIComponent(ksefNumber)}`, {
-        token: accessToken,
-      });
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      lastDownloadAt = now();
-      return { bytes, hash: res.headers.get("x-ms-meta-hash") };
-    },
+    downloadInvoiceXml: (accessToken, ksefNumber) =>
+      downloads.run(async () => {
+        const res = await send("GET", `/invoices/ksef/${encodeURIComponent(ksefNumber)}`, {
+          token: accessToken,
+        });
+        const bytes = new Uint8Array(await res.arrayBuffer());
+        return { bytes, hash: res.headers.get("x-ms-meta-hash") };
+      }),
 
     logout: async (accessToken) => {
       await send("DELETE", "/auth/sessions/current", { token: accessToken });

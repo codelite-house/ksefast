@@ -75,12 +75,27 @@ const addPdfInvoices = async (
 
 export interface ArchiveBuilder {
   addInvoices: (invoices: DownloadedInvoice[]) => Promise<void>;
+  /** Faktury, których nie udało się pobrać – trafiają do manifest.json i BRAKUJACE.txt. */
+  setMissing: (invoices: InvoiceMetadata[]) => void;
   finalize: () => Promise<Blob>;
 }
+
+export const MISSING_FILE_NAME = "BRAKUJACE.txt";
+
+const missingFileContent = (invoices: InvoiceMetadata[]): string =>
+  [
+    `Tych ${invoices.length} faktur nie udało się pobrać z KSeF (najczęściej z powodu limitu pobrań).`,
+    "Dociągniesz je na ksefast.pl przyciskiem \"Dociągnij brakujące\" albo lokalnym CLI.",
+    "",
+    "Numer KSeF\tNumer faktury\tData wystawienia",
+    ...invoices.map((m) => `${m.ksefNumber}\t${m.invoiceNumber}\t${m.issueDate}`),
+    "",
+  ].join("\r\n");
 
 export const createArchiveBuilder = (format: DownloadFormat): ArchiveBuilder => {
   const zip = new JSZip();
   const manifestInvoices: ReturnType<typeof manifestEntry>[] = [];
+  let missing: InvoiceMetadata[] = [];
 
   return {
     addInvoices: async (invoices: DownloadedInvoice[]) => {
@@ -96,7 +111,13 @@ export const createArchiveBuilder = (format: DownloadFormat): ArchiveBuilder => 
         manifestInvoices.push(manifestEntry(metadata));
       }
     },
+    setMissing: (invoices) => {
+      missing = invoices;
+    },
     finalize: async () => {
+      if (missing.length > 0) {
+        zip.file(MISSING_FILE_NAME, missingFileContent(missing));
+      }
       zip.file(
         "manifest.json",
         JSON.stringify(
@@ -105,6 +126,7 @@ export const createArchiveBuilder = (format: DownloadFormat): ArchiveBuilder => 
             format,
             invoiceCount: manifestInvoices.length,
             invoices: manifestInvoices,
+            ...(missing.length > 0 && { missingInvoices: missing.map(manifestEntry) }),
           },
           null,
           2,

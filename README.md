@@ -6,14 +6,14 @@
 
 Pobierz faktury z KSeF (Krajowy System e-Faktur) jako paczkę ZIP – w formacie XML lub PDF – bez instalowania żadnego oprogramowania poza Dockerem.
 
-> **Prywatność przede wszystkim.** Token KSeF jest szyfrowany lokalnie w przeglądarce. Faktura nigdy nie dotyka zewnętrznego serwera – archiwum ZIP powstaje bezpośrednio u Ciebie.
+> **Prywatność przede wszystkim.** Token KSeF jest szyfrowany w przeglądarce kluczem publicznym MF, więc serwer go nie pozna. Faktury przechodzą przez serwer proxy tylko w tranzycie (KSeF blokuje CORS), a archiwum ZIP powstaje u Ciebie. Chcesz zero pośredników? Uruchom KSeFast u siebie (`docker compose up`) albo użyj [CLI](#cli--pobieranie-faktur-z-linii-poleceń), które łączy się z KSeF bezpośrednio.
 
 ## Co robi
 
-- loguje się do KSeF przy użyciu tokena KSeF (token jest szyfrowany lokalnie w przeglądarce, nigdy nie jest zapisywany),
+- loguje się do KSeF przy użyciu tokena KSeF (token jest szyfrowany w przeglądarce i nigdzie nie jest zapisywany),
 - pobiera listę faktur dla wskazanego miesiąca,
-- buduje paczkę ZIP z fakturami w formacie XML albo PDF **lokalnie w przeglądarce** – nic nie trafia na zewnętrzne serwery,
-- wszystkie dane są przetwarzane i niszczone natychmiast po pobraniu.
+- buduje paczkę ZIP z fakturami w formacie XML albo PDF **w przeglądarce**; serwer proxy tylko przekazuje faktury z KSeF i ich nie zapisuje,
+- przestrzega limitów KSeF (pauzy, ponawianie po `429`); po wyczerpaniu limitu godzinowego oddaje paczkę częściową z listą brakujących (`BRAKUJACE.txt`) i pozwala je dociągnąć,
 - udostępnia formularz kontaktowy z dwoma typami wiadomości: "Zgłoś problem" i "kontakt z developerami".
 
 ## Wymagania
@@ -38,24 +38,28 @@ docker compose down   # zatrzymanie
 ## Jak to działa – prywatność
 
 ```
-Przeglądarka                             KSeF API (MF)
-──────────────────────────────────────   ────────────
-1. Pobiera certyfikat publiczny RSA   ←→  /security/public-key-certificates
-2. Szyfruje token RSA-OAEP lokalnie
-3. Wysyła zaszyfrowany token          →   (przez lokalny proxy)
-4. Odbiera metadane i XML faktur      ←   (przez lokalny proxy)
-5. Generuje PDF i ZIP w pamięci
-6. Pobiera plik – dane są niszczone
+Przeglądarka                                 Proxy (server.ts)         KSeF API (MF)
+──────────────────────────────────────────   ───────────────────────   ─────────────
+1. Pobiera certyfikat publiczny RSA       ←→ przekazuje             ←→ /security/public-key-certificates
+2. Szyfruje token KSeF RSA-OAEP lokalnie
+3. Wysyła zaszyfrowany token              →  widzi tylko szyfrogram  → /auth/ksef-token
+4. Dostaje access token sesji             ←  bez refresh tokena     ← /auth/token/redeem
+5. Odbiera metadane i XML faktur          ←  jawnie (w TLS)         ← /invoices/...
+6. Generuje PDF i ZIP w pamięci, zapisuje plik na dysk
 ```
 
-- **Token szyfrowany lokalnie** – RSA-OAEP w przeglądarce. Serwer proxy widzi tylko zaszyfrowany blob.
-- **Serwer proxy bezstanowy** – nie loguje, nie zapisuje, nie przechowuje żadnych danych. Istnieje wyłącznie dlatego, że KSeF API blokuje CORS.
+- **Token KSeF szyfrowany lokalnie** – RSA-OAEP w przeglądarce, kluczem publicznym MF. Proxy dostaje tylko szyfrogram i nie może go odszyfrować.
+- **Przez proxy przechodzą jawnie (w tranzycie, szyfrowane TLS)**: tymczasowy `authenticationToken`, `accessToken` sesji (w nagłówku `Authorization`), identyfikator kontekstu (np. NIP) oraz metadane i XML faktur. Proxy istnieje wyłącznie dlatego, że KSeF API blokuje CORS. `refreshToken` z `/auth/token/redeem` nie jest przekazywany do przeglądarki.
+- **Proxy bezstanowy** – bez bazy, sesji i zapisu plików; nie zapisuje tokenów ani treści faktur w logach (loguje tylko błędy formularza kontaktowego i uwierzytelnienia M2M). Numer KSeF faktury idzie w treści żądania (`POST /api/invoices/download`), więc nie trafia do logów dostępowych nginx/ingress.
+- **Wersja hostowana (ksefast.pl)** – operator: IT Solutions Grzegorz Krzesiński (Codelite House), kontakt: contact@codelitehouse.com. Zasady przetwarzania: [ksefast.pl/polityka-prywatnosci](https://ksefast.pl/polityka-prywatnosci).
+- **Zero pośredników** – uruchom proxy u siebie (`docker compose up`) albo użyj CLI, które łączy się z KSeF bezpośrednio.
 - **PDF generowany lokalnie** – przez oficjalną bibliotekę [`CIRFMF/ksef-pdf-generator`](https://github.com/CIRFMF/ksef-pdf-generator) MF.
 - **ZIP tworzony lokalnie** – w pamięci przeglądarki, pobierany bezpośrednio na komputer.
 
 ## Ograniczenia
 
-- Jedna paczka obsługuje maksymalnie **50 faktur**.
+- KSeF pozwala pobrać **16 faktur na minutę i 64 na godzinę**. Aplikacja webowa robi pauzy (~4,5 s między fakturami) i ponawia po `429`; gdy limit godzinowy się wyczerpie, oddaje paczkę częściową z plikiem `BRAKUJACE.txt` i przyciskiem "Dociągnij brakujące".
+- Jedno pobranie obejmuje maksymalnie **2000 faktur** (wybierz krótszy okres, jeśli jest ich więcej).
 - Wymagany jest token KSeF oraz identyfikator kontekstu logowania (NIP firmy lub inny typ kontekstu).
 
 ## Stack
@@ -116,7 +120,7 @@ ksefast/
 │   ├── lib/              ← crypto, QR, logowanie tokenem, utils (współdzielone z CLI)
 │   └── components/       ← UI (HeroCopy, DownloadForm, sekcje strony, ui/ – wspólne klocki)
 ├── cli/src/              ← CLI: klient KSeF wprost, pobieranie do folderu (Node, uruchamiane przez tsx)
-├── server/server.ts      ← proxy Express (bezstanowy, bez logowania)
+├── server/server.ts      ← proxy Express (bezstanowy, bez zapisu danych)
 ├── docs/openapi/         ← specyfikacje OpenAPI KSeF v2 (źródło prawdy)
 └── docker-compose.yml
 ```

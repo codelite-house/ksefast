@@ -78,14 +78,15 @@ const DownloadForm = () => {
   );
 
   const renderBody = () => {
-    if (form.isPending) return <DownloadStatus progress={form.progress} />;
+    if (form.isPending) return <DownloadStatus progress={form.progress} onCancel={form.cancelDownload} />;
 
     if (form.isSuccess && form.result) {
+      const result = form.result;
       return (
         <DownloadSuccess
-          invoiceCount={form.result.invoiceCount}
-          fileName={form.result.fileName}
+          result={result}
           onReset={form.resetDownload}
+          onDownloadMissing={() => form.downloadMissing(result)}
         />
       );
     }

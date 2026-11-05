@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 
 import { CONTEXT_META, hasValidNipChecksum } from "../lib/contextMeta";
 import { defaultMonth, monthLabels } from "../lib/monthLabels";
@@ -10,7 +10,7 @@ import type {
   EnvironmentName,
   SubjectType,
 } from "../types";
-import { useDownloadInvoices } from "./useDownloadInvoices";
+import { DownloadCancelledError, useDownloadInvoices, type DownloadResult } from "./useDownloadInvoices";
 
 export type InvalidField = "token" | "contextValue";
 
@@ -18,6 +18,17 @@ export type InvalidField = "token" | "contextValue";
 // niego ignorowany, więc formularz go nie wystawia. Wartość jest tu tylko dlatego, że wymaga jej typ
 // żądania i współdzielone moduły (m.in. CLI, gdzie środowisko ma realne znaczenie).
 const REQUEST_ENVIRONMENT: EnvironmentName = "prod";
+
+const saveArchive = (result: DownloadResult) => {
+  const objectUrl = URL.createObjectURL(result.blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = result.fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+};
 
 /** Stan, walidacja i wysyłka formularza pobierania faktur (widok: DownloadForm). */
 export const useDownloadForm = () => {
@@ -33,6 +44,8 @@ export const useDownloadForm = () => {
 
   const download = useDownloadInvoices();
   const { mutate, reset: resetDownload } = download;
+  // Ostatnie żądanie – do dociągnięcia brakujących faktur tymi samymi filtrami.
+  const lastRequestRef = useRef<DownloadInvoicesRequest | null>(null);
 
   const contextMeta = CONTEXT_META[contextType];
   const contextValidationError = contextMeta.validate(contextValue);
@@ -84,17 +97,28 @@ export const useDownloadForm = () => {
       format,
     };
 
+    startDownload(request);
+  };
+
+  const startDownload = (request: DownloadInvoicesRequest) => {
+    lastRequestRef.current = request;
     mutate(request, {
-      onSuccess: (result) => {
-        const objectUrl = URL.createObjectURL(result.blob);
-        const link = document.createElement("a");
-        link.href = objectUrl;
-        link.download = result.fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(objectUrl);
+      onSuccess: saveArchive,
+      onError: (error) => {
+        // Anulowanie przed pobraniem pierwszej faktury: wracamy do formularza bez komunikatu o błędzie.
+        if (error instanceof DownloadCancelledError) resetDownload();
       },
+    });
+  };
+
+  /** Pobiera ponownie tylko faktury z listy brakujących (np. po upływie limitu godzinowego KSeF). */
+  const downloadMissing = (result: DownloadResult) => {
+    const previous = lastRequestRef.current;
+    if (!previous || result.missing.length === 0) return;
+    startDownload({
+      ...previous,
+      token,
+      onlyKsefNumbers: result.missing.map((invoice) => invoice.ksefNumber),
     });
   };
 
@@ -129,6 +153,8 @@ export const useDownloadForm = () => {
     },
     handleSubmit,
     resetDownload,
+    cancelDownload: download.cancel,
+    downloadMissing,
     isPending: download.isPending,
     isSuccess: download.isSuccess,
     isError: download.isError,

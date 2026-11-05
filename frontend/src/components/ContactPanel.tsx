@@ -2,10 +2,12 @@ import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
+import { OPERATOR, PRIVACY_POLICY_PATH } from "../content/privacyPolicy";
 import { useContactForm } from "../hooks/useContactForm";
 import { brand } from "../theme";
 import GlowCard from "./ui/GlowCard";
@@ -91,6 +93,13 @@ const ContactPanel = () => {
         >
           {isPending ? "Wysyłanie…" : "Wyślij wiadomość"}
         </Button>
+
+        <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+          Administratorem Twoich danych jest {OPERATOR.name}. Używamy ich tylko do odpowiedzi na wiadomość
+          (art. 6 ust. 1 lit. f RODO) i przechowujemy nie dłużej niż 24 miesiące od zamknięcia sprawy. Masz prawo
+          dostępu do danych, ich poprawienia i usunięcia oraz sprzeciwu. Szczegóły:{" "}
+          <Link href={PRIVACY_POLICY_PATH}>polityka prywatności</Link>.
+        </Typography>
       </Box>
 
       {isSuccess && (

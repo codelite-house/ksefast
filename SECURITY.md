@@ -22,12 +22,22 @@ Odpowiemy w ciągu 5 dni roboczych. Dla potwierdzonych krytycznych luk dążymy 
 
 KSeFast ma minimalną powierzchnię ataku z założenia:
 
-- **Brak przechowywania danych** — serwer jest bezstanowy. Przekazuje żądania do KSeF API i nie zapisuje niczego.
-- **Token nigdy nie opuszcza przeglądarki w postaci jawnej** — szyfrowanie RSA-OAEP odbywa się w przeglądarce przy użyciu klucza publicznego KSeF, zanim cokolwiek zostanie wysłane.
+- **Brak przechowywania danych** — serwer jest bezstanowy. Przekazuje żądania do KSeF API i nie zapisuje tokenów ani faktur (na dysku, w bazie ani w logach).
+- **Długoterminowy token KSeF nigdy nie opuszcza przeglądarki w postaci jawnej** — szyfrowanie RSA-OAEP odbywa się w przeglądarce kluczem publicznym MF, zanim zostanie wysłany. Odszyfrować go może wyłącznie KSeF.
 - **Brak bazy danych, sesji, kont użytkowników.**
-- **ZIP i PDF generowane lokalnie** — dane faktur nigdy nie przechodzą przez nasz serwer.
+- **ZIP i PDF generowane lokalnie** — w przeglądarce.
 
-Serwer proxy (`server/server.ts`) jedynie przekazuje żądania HTTP. Nie ma dostępu do zaszyfrowanego tokena, ponieważ nie może odszyfrować RSA-OAEP bez klucza prywatnego użytkownika (który nie istnieje — KSeF wykorzystuje schemat asymetryczny, gdzie klucz prywatny posiada wyłącznie KSeF).
+### Co widzi serwer proxy
+
+Proxy (`server/server.ts`) przekazuje żądania HTTP między przeglądarką a KSeF, bo KSeF API blokuje CORS. W tranzycie (TLS) widzi:
+
+- szyfrogram tokena KSeF — bez możliwości odszyfrowania,
+- tymczasowy `authenticationToken` i `accessToken` sesji KSeF (nagłówek `Authorization`) — działający token sesji pozwala odczytać faktury podmiotu do czasu jego wygaśnięcia,
+- identyfikator kontekstu (np. NIP), metadane i treść XML pobieranych faktur.
+
+`refreshToken` zwracany przez `/auth/token/redeem` nie jest przekazywany do przeglądarki. Kto nie chce ufać operatorowi wersji hostowanej, może uruchomić proxy u siebie (`docker compose up`) albo użyć CLI (`pnpm cli download`), które łączy się z KSeF bezpośrednio.
+
+Operator wersji hostowanej ksefast.pl: IT Solutions Grzegorz Krzesiński (Codelite House), contact@codelitehouse.com. Polityka prywatności: https://ksefast.pl/polityka-prywatnosci.
 
 ## Zakres
 

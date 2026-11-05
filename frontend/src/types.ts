@@ -29,6 +29,8 @@ export interface DownloadInvoicesRequest {
   dateFrom: string;
   dateTo: string;
   format: DownloadFormat;
+  /** Dociągnięcie brakujących: pobierz tylko faktury o tych numerach KSeF. */
+  onlyKsefNumbers?: string[];
 }
 
 // Odpowiada schematowi PublicKeyCertificate z OpenAPI spec KSeF v2 (/security/public-key-certificates)
@@ -79,13 +81,14 @@ export interface KsefAuthStatusResponse {
   isTokenRedeemed?: boolean | null;
 }
 
-// Odpowiada AuthenticationTokensResponse z OpenAPI spec KSeF v2 (POST /auth/token/redeem)
+// Odpowiada AuthenticationTokensResponse z OpenAPI spec KSeF v2 (POST /auth/token/redeem).
+// Proxy nie przekazuje refreshToken do przeglądarki (aplikacja go nie używa).
 export interface KsefTokensResponse {
   accessToken: {
     token: string;
     validUntil: string;
   };
-  refreshToken: {
+  refreshToken?: {
     token: string;
     validUntil: string;
   };
@@ -150,6 +153,8 @@ export interface DownloadProgress {
   message: string;
   current?: number;
   total?: number;
+  /** Pauza po limicie KSeF: znacznik czasu (ms), kiedy pobieranie ruszy dalej. */
+  resumeAt?: number;
 }
 
 export type ContactMessageType = "ContactForm" | "ProblemReport";

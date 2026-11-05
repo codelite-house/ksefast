@@ -11,7 +11,7 @@
     "build": "pnpm --filter ksefast-frontend run build",
     "start": "pnpm --filter ksefast-proxy run start",
     "cli": "pnpm --filter ksefast-proxy exec tsx --tsconfig ../cli/tsconfig.json ../cli/src/bin.ts",
-    "test:cli": "pnpm --filter ksefast-proxy exec tsx --tsconfig ../cli/tsconfig.json --test ../cli/src/main.test.ts ../cli/src/download.test.ts"
+    "test:cli": "pnpm --filter ksefast-proxy exec tsx --tsconfig ../cli/tsconfig.json --test ../cli/src/main.test.ts ../cli/src/download.test.ts ../cli/src/ksefRateLimit.test.ts"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

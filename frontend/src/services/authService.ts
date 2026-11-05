@@ -1,4 +1,4 @@
-import { apiFetch } from "./apiClient";
+import { ksefFetch } from "./apiClient";
 import type {
   EnvironmentName,
   KsefChallengeResponse,
@@ -15,7 +15,7 @@ import type {
 export const getChallenge = (
   environment: EnvironmentName,
 ): Promise<KsefChallengeResponse> =>
-  apiFetch<KsefChallengeResponse>(
+  ksefFetch<KsefChallengeResponse>(
     `/auth/challenge?environment=${environment}`,
     {
       method: "POST",
@@ -31,7 +31,7 @@ export const initTokenAuth = (
   environment: EnvironmentName,
   body: InitTokenAuthRequest,
 ): Promise<KsefInitAuthResponse> =>
-  apiFetch<KsefInitAuthResponse>(
+  ksefFetch<KsefInitAuthResponse>(
     `/auth/token?environment=${environment}`,
     {
       method: "POST",
@@ -49,7 +49,7 @@ export const getAuthStatus = (
   referenceNumber: string,
   authToken: string,
 ): Promise<KsefAuthStatusResponse> =>
-  apiFetch<KsefAuthStatusResponse>(
+  ksefFetch<KsefAuthStatusResponse>(
     `/auth/status?environment=${environment}&referenceNumber=${encodeURIComponent(referenceNumber)}`,
     { headers: { Authorization: `Bearer ${authToken}` } },
   );
@@ -62,7 +62,7 @@ export const redeemToken = (
   environment: EnvironmentName,
   authToken: string,
 ): Promise<KsefTokensResponse> =>
-  apiFetch<KsefTokensResponse>(
+  ksefFetch<KsefTokensResponse>(
     `/auth/redeem?environment=${environment}`,
     {
       method: "POST",

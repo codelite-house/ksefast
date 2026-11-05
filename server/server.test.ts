@@ -654,6 +654,102 @@ test("proxy: passes through KSeF 500 status code (not hardcoded 400)", async () 
   }
 });
 
+test("proxy: forwards KSeF Retry-After on 429 so the browser knows when to retry", async () => {
+  const app = createApp();
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const req = new Request(input, init);
+    if (req.url.includes("127.0.0.1") || req.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(JSON.stringify({ status: { code: 429, description: "Too Many Requests" } }), {
+      status: 429,
+      headers: { "Content-Type": "application/json", "Retry-After": "42" },
+    });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/invoices/download`, {
+      method: "POST",
+      headers: { Authorization: "Bearer access", "Content-Type": "application/json" },
+      body: JSON.stringify({ ksefNumber: "X" }),
+    });
+    assert.equal(res.status, 429);
+    assert.equal(res.headers.get("retry-after"), "42");
+    assert.match(res.headers.get("access-control-expose-headers") ?? "", /Retry-After/);
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
+test("POST /api/invoices/download: ksefNumber from the body goes to the KSeF path, not the query", async () => {
+  const app = createApp();
+  let upstreamUrl = "";
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const req = new Request(input, init);
+    if (req.url.includes("127.0.0.1") || req.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    upstreamUrl = req.url;
+    return new Response("<Faktura/>", { status: 200, headers: { "Content-Type": "application/xml" } });
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/invoices/download`, {
+      method: "POST",
+      headers: { Authorization: "Bearer access", "Content-Type": "application/json" },
+      body: JSON.stringify({ ksefNumber: "5265877635-20261001-0100A0B1C2D3-4E" }),
+    });
+    assert.equal(res.status, 200);
+    assert.equal(await res.text(), "<Faktura/>");
+    assert.match(upstreamUrl, /\/invoices\/ksef\/5265877635-20261001-0100A0B1C2D3-4E$/);
+
+    const missing = await fetch(`http://127.0.0.1:${port}/api/invoices/download`, {
+      method: "POST",
+      headers: { Authorization: "Bearer access", "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    assert.equal(missing.status, 400);
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
+test("POST /api/auth/redeem: does not pass the refresh token to the browser", async () => {
+  const app = createApp();
+  globalThis.fetch = (async (input: URL | RequestInfo, init?: RequestInit) => {
+    const req = new Request(input, init);
+    if (req.url.includes("127.0.0.1") || req.url.includes("localhost")) {
+      return originalFetch(input as RequestInfo, init);
+    }
+    return new Response(
+      JSON.stringify({
+        accessToken: { token: "ACCESS", validUntil: "2026-11-04T12:00:00Z" },
+        refreshToken: { token: "REFRESH", validUntil: "2026-11-11T12:00:00Z" },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  }) as typeof fetch;
+
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await fetch(`http://127.0.0.1:${port}/api/auth/redeem`, {
+      method: "POST",
+      headers: { Authorization: "Bearer auth" },
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json() as Record<string, unknown>;
+    assert.deepEqual(body.accessToken, { token: "ACCESS", validUntil: "2026-11-04T12:00:00Z" });
+    assert.equal("refreshToken" in body, false, "refresh token must stay out of the browser");
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
 // Regression: Node's fetch drops a custom `Host` header, so the internal Zitadel call must identify
 // the external host with headers that survive (otherwise Zitadel answers 404 "Instance not found"
 // and the contact form shows "temporarily unavailable"). Keep this test LAST: it fills the

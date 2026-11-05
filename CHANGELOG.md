@@ -10,6 +10,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ### Dodano
 
+- Pobieranie w aplikacji webowej przestrzega limitów KSeF (16 faktur/min, 64/h): pauza ~4,5 s między fakturami, ponawianie po `429` zgodnie z `Retry-After` (proxy przekazuje teraz ten nagłówek) i po błędach 5xx. Podczas pauzy widać odliczanie "Limit KSeF – wznowienie za 0:45". Logika limitów jest wspólna z CLI (`frontend/src/lib/ksefRateLimit.ts`)
+- Pobrane faktury nigdy nie przepadają: po wyczerpaniu limitu godzinowego, zerwaniu połączenia albo zatrzymaniu pobierania powstaje paczka częściowa z plikiem `BRAKUJACE.txt` (numery KSeF brakujących faktur), a przycisk "Dociągnij brakujące" pobiera resztę, gdy KSeF znów pozwoli. Pojedyncza faktura niedostępna w KSeF (np. jeszcze przetwarzana) nie przerywa całej paczki
+- Przycisk "Zatrzymaj i zapisz pobrane" w trakcie pobierania i ostrzeżenie przed zamknięciem karty
+- Polityka prywatności (`/polityka-prywatnosci`, link w stopce, przy formularzu kontaktowym i w sekcji "Prywatność"): administrator, co przechodzi przez serwer pośredniczący przy pobieraniu faktur, formularz kontaktowy, logi techniczne, prawa osób. Pod formularzem kontaktowym skrócona klauzula informacyjna (art. 13 RODO)
 - Przebudowa strony "na WOW": przyklejony nagłówek ze wskaźnikiem przewijania, hero z animacją faktur lecących do paczki ZIP, tło z poświatami, sekcje "Jak to działa", "Prywatność" (animowana droga tokena), "Porównanie" (wyścig czasu vs portal MF), FAQ jako akordeon i kontakt. Bez nowych zależności, z obsługą `prefers-reduced-motion`
 - Formularz pobierania w trzech krokach logicznych: token (z przyciskiem "Wklej" i podglądem), NIP (auto-formatowanie wklejki, ostrzeżenie o błędnej sumie kontrolnej), wybór miesiąca kafelkami oraz rodzaju faktur i formatu kartami; opcje techniczne (rodzaj identyfikatora, typ daty, rola) schowane w "Opcjach zaawansowanych"
 - Widok postępu pobierania (pierścień, etapy i liczniki na żywo) oraz ekran sukcesu z konfetti i przyciskiem "Pobierz kolejny miesiąc"
@@ -28,6 +32,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ### Zmieniono
 
+- Opisy prywatności w README, `SECURITY.md`, sekcji "Prywatność" i FAQ zgodne z tym, co robi kod: szyfrowany jest długoterminowy token KSeF, a tymczasowy token sesji oraz faktury przechodzą przez serwer pośredniczący w tranzycie (TLS), bez zapisu. Usunięto zdania "faktura nigdy nie dotyka zewnętrznego serwera", "serwer widzi tylko zaszyfrowany blob" i "serwer nie loguje". Wskazano operatora wersji hostowanej i opcje bez pośrednika (własny `docker compose up`, CLI)
+- Proxy nie przekazuje przeglądarce `refreshToken` z `/auth/token/redeem` (aplikacja go nie używa)
+- Pobranie faktury idzie przez `POST /api/invoices/download` z numerem KSeF w treści – numer (zawiera NIP sprzedawcy) nie trafia już do logów dostępowych nginx/ingress. `GET ?ksefNumber=` działa dalej dla kart otwartych przed aktualizacją
+- Formularz kontaktowy nie wysyła już `userAgent` przeglądarki
 - FAQ przepisane na to, co aplikacja faktycznie robi: usunięto pytania o powiadomienia o nowych fakturach i wyszukiwanie faktury (tych funkcji nie ma), o "archiwizację" oraz zapewnienie "bezpieczniejsze niż w banku"; zdublowane pytania scalono, dodano "Skąd wziąć token KSeF?", poprawiono odpowiedź o limitach (zamiast nieaktualnego "maksymalnie 50 faktur"). Kafelek "Szybkie szukanie" zastąpiono "Cały miesiąc jednym kliknięciem"
 - Usunięto z formularza przełącznik "Produkcja/Demo" – od 17.08 serwer ignoruje parametr `?environment=` i środowisko KSeF wybiera wyłącznie zmienną `KSEF_ENV` (staging = test, produkcja = prawdziwy KSeF), więc przełącznik nic nie robił i wprowadzał w błąd
 - Wdrożenie: jeden chart Helm `ksefast` (komponenty `api` i `app`, jeden release w ArgoCD – tak jak jobsonar) zamiast dwóch osobnych chartów `ksefast-backend` i `ksefast-frontend`; CI publikuje jeden chart na wersję

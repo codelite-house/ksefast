@@ -1,7 +1,9 @@
 import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 
 import { blink, pulseRing } from "../../animations";
+import { formatCountdown, useCountdown } from "../../hooks/useCountdown";
 import { brand } from "../../theme";
 import type { DownloadPhase, DownloadProgress } from "../../types";
 import BrandMark from "../ui/BrandMark";
@@ -75,10 +77,13 @@ const ProgressRing = ({ percent, indeterminate }: { percent: number; indetermina
 
 interface DownloadStatusProps {
   progress: DownloadProgress | null;
+  onCancel: () => void;
 }
 
 /** Widok w trakcie pobierania: pierścień postępu + etapy z licznikami na żywo. */
-const DownloadStatus = ({ progress }: DownloadStatusProps) => {
+const DownloadStatus = ({ progress, onCancel }: DownloadStatusProps) => {
+  const waitSeconds = useCountdown(progress?.resumeAt);
+  const downloading = progress?.phase === "download" && (progress.current ?? 0) > 0;
   const currentIndex = Math.max(
     0,
     PHASES.findIndex((item) => item.phase === (progress?.phase ?? "auth")),
@@ -98,9 +103,20 @@ const DownloadStatus = ({ progress }: DownloadStatusProps) => {
       <Typography sx={{ mt: 2, textAlign: "center", fontWeight: 700, fontSize: "1.05rem" }}>
         {progress?.message ?? "Łączenie z KSeF…"}
       </Typography>
-      <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 0.5 }}>
-        Nie zamykaj karty – przy dużej liczbie dokumentów to może potrwać kilka minut.
-      </Typography>
+      {progress?.resumeAt ? (
+        <Typography
+          variant="body2"
+          sx={{ textAlign: "center", mt: 0.5, color: brand.amber, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}
+        >
+          {waitSeconds > 0
+            ? `Limit KSeF – wznowienie za ${formatCountdown(waitSeconds)}`
+            : "Limit KSeF – wznawianie…"}
+        </Typography>
+      ) : (
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center", mt: 0.5 }}>
+          Nie zamykaj karty. KSeF pozwala pobrać 16 faktur na minutę, więc większy miesiąc zajmie kilka minut.
+        </Typography>
+      )}
 
       <Box component="ol" sx={{ listStyle: "none", p: 0, m: 0, mt: 3, display: "grid", gap: 1.25 }}>
         {PHASES.map((item, index) => {
@@ -154,6 +170,12 @@ const DownloadStatus = ({ progress }: DownloadStatusProps) => {
             </Box>
           );
         })}
+      </Box>
+
+      <Box sx={{ mt: 3, textAlign: "center" }}>
+        <Button variant="text" color="inherit" size="small" onClick={onCancel} sx={{ opacity: 0.8 }}>
+          {downloading ? "Zatrzymaj i zapisz pobrane" : "Anuluj"}
+        </Button>
       </Box>
     </Box>
   );

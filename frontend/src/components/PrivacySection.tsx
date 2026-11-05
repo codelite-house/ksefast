@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
 
+import { PRIVACY_POLICY_PATH } from "../content/privacyPolicy";
 import { brand } from "../theme";
 import TokenScramble from "./TokenScramble";
 import GlowCard from "./ui/GlowCard";
@@ -13,12 +14,12 @@ const POINTS = [
   {
     icon: LockIcon,
     title: "Token szyfrowany lokalnie",
-    text: "RSA-OAEP w Twojej przeglądarce, kluczem publicznym KSeF. Serwer pośredniczący widzi tylko zaszyfrowany blob.",
+    text: "Twój token KSeF szyfrujemy w przeglądarce kluczem publicznym Ministerstwa Finansów (RSA-OAEP). Odszyfrować go może tylko KSeF – nasz serwer go nie pozna.",
   },
   {
     icon: ServerIcon,
     title: "Serwer bez pamięci",
-    text: "Nie loguje, nie zapisuje, nie ma bazy danych. Istnieje wyłącznie dlatego, że API KSeF blokuje CORS.",
+    text: "Tymczasowy token sesji i faktury przechodzą przez nasz serwer w drodze z KSeF do Ciebie (szyfrowane TLS), bo API KSeF blokuje zapytania wprost z przeglądarki (CORS). Serwer ich nie zapisuje, nie zapisuje ich w logach i nie ma bazy danych.",
   },
   {
     icon: ArchiveIcon,
@@ -86,10 +87,10 @@ const PrivacySection = () => (
     eyebrow="Prywatność"
     title={
       <>
-        Serwer widzi tylko <GradientText fast>zaszyfrowany blob</GradientText>
+        Twój token KSeF <GradientText fast>zostaje u Ciebie</GradientText>
       </>
     }
-    subtitle="To proste: nie mamy dostępu do Twojego tokena w jawnej postaci i niczego nie przechowujemy. Wszystko kończy się na Twoim urządzeniu."
+    subtitle="Nie znamy Twojego tokena KSeF i niczego nie przechowujemy. Faktury tylko przechodzą przez nasz serwer, a paczka powstaje na Twoim urządzeniu. Wolisz zero pośredników? Uruchom KSeFast u siebie albo użyj CLI."
   >
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "minmax(0, 1fr)", lg: "minmax(0, 1.05fr) minmax(0, 1fr)" }, gap: { xs: 3, lg: 5 }, alignItems: "stretch" }}>
       <Box sx={{ display: "grid", gap: 2.5, alignContent: "start" }}>
@@ -124,6 +125,7 @@ const PrivacySection = () => (
             <Link href="https://github.com/codelitehouse/ksefast" target="_blank" rel="noreferrer" sx={{ fontWeight: 700 }}>
               github.com/codelitehouse/ksefast
             </Link>
+            . Szczegóły: <Link href={PRIVACY_POLICY_PATH}>polityka prywatności</Link>.
           </Typography>
         </Reveal>
       </Box>
@@ -135,7 +137,7 @@ const PrivacySection = () => (
           <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.5, mb: 3 }}>
             <Node icon={BrowserIcon} title="Twoja przeglądarka" note="jawny token, ZIP, PDF" accent={brand.green} />
             <Wire from={brand.green} to={brand.amber} />
-            <Node icon={ServerIcon} title="Serwer pośredniczący" note="tylko szyfrogram, bez zapisu" accent={brand.amber} />
+            <Node icon={ServerIcon} title="Serwer pośredniczący" note="szyfrogram tokena, bez zapisu" accent={brand.amber} />
             <Wire from={brand.amber} to={brand.sky} />
             <Node icon={LockIcon} title="KSeF (MF)" note="odszyfrowuje swoim kluczem" accent={brand.sky} />
           </Box>

@@ -1,4 +1,4 @@
-import { apiFetch } from "./apiClient";
+import { ksefFetch } from "./apiClient";
 import type { EnvironmentName, PublicCertificateInfo } from "../types";
 
 /**
@@ -9,6 +9,6 @@ import type { EnvironmentName, PublicCertificateInfo } from "../types";
 export const getPublicCertificates = (
   environment: EnvironmentName,
 ): Promise<PublicCertificateInfo[]> =>
-  apiFetch<PublicCertificateInfo[]>(
+  ksefFetch<PublicCertificateInfo[]>(
     `/security/certificates?environment=${environment}`,
   );

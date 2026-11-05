@@ -115,6 +115,7 @@ function setCors(res: Response, req: Request): void {
   if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
   res.setHeader("Access-Control-Allow-Methods", CORS_ALLOW_METHODS);
   res.setHeader("Access-Control-Allow-Headers", CORS_ALLOW_HEADERS);
+  res.setHeader("Access-Control-Expose-Headers", "Retry-After");
   if (origin && origin !== "*") res.setHeader("Vary", "Origin");
 }
 
@@ -141,15 +142,25 @@ async function buildContactServiceHeaders(): Promise<Record<string, string>> {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
 
+function stripRefreshToken(body: unknown): unknown {
+  if (typeof body !== "object" || body === null) return body;
+  const { refreshToken: _refreshToken, ...rest } = body as Record<string, unknown>;
+  return rest;
+}
+
 async function proxy(
   ksefUrl: string,
   init: RequestInit,
   res: Response,
+  transformJson?: (body: unknown) => unknown,
 ): Promise<void> {
   const upstream = await fetch(ksefUrl, { ...init, signal: AbortSignal.timeout(30_000) });
   const ct = upstream.headers.get("content-type") ?? "";
 
   if (!upstream.ok) {
+    // Przy 429 KSeF mówi, ile sekund czekać – bez tego przeglądarka nie wie, kiedy ponowić pobieranie.
+    const retryAfter = upstream.headers.get("retry-after");
+    if (retryAfter) res.setHeader("Retry-After", retryAfter);
     const body = ct.includes("application/json")
       ? await upstream.json()
       : await upstream.text();
@@ -164,7 +175,8 @@ async function proxy(
   }
 
   if (ct.includes("application/json")) {
-    res.status(200).json(await upstream.json());
+    const body: unknown = await upstream.json();
+    res.status(200).json(transformJson ? transformJson(body) : body);
     return;
   }
 
@@ -267,10 +279,12 @@ export function createApp(options?: AppOptions) {
       return;
     }
     try {
+      // Przeglądarka używa tylko accessToken – refreshToken (ważny dłużej) nie wychodzi poza proxy.
       await proxy(
         `${resolveBase()}/auth/token/redeem`,
         { method: "POST", headers: { Authorization: auth } },
         res,
+        stripRefreshToken,
       );
     } catch (e) {
       res.status(500).json({ message: (e as Error).message });
@@ -313,11 +327,12 @@ export function createApp(options?: AppOptions) {
     }
   });
 
-  // GET /api/invoices/download  →  GET /invoices/ksef/{ksefNumber}
-  app.get("/api/invoices/download", async (req, res) => {
+  // POST /api/invoices/download {ksefNumber}  →  GET /invoices/ksef/{ksefNumber}
+  // Numer KSeF (zawiera NIP sprzedawcy) idzie w treści żądania, żeby nie trafiał do logów dostępowych
+  // nginx/ingress. GET z ?ksefNumber= zostaje dla kart otwartych przed wdrożeniem tej zmiany.
+  const downloadInvoice = async (req: Request, res: Response, ksefNumber: unknown) => {
     setCors(res, req);
-    const { ksefNumber } = req.query;
-    if (!ksefNumber) {
+    if (!ksefNumber || typeof ksefNumber !== "string") {
       res.status(400).json({ message: "ksefNumber is required" });
       return;
     }
@@ -328,14 +343,17 @@ export function createApp(options?: AppOptions) {
     }
     try {
       await proxy(
-        `${resolveBase()}/invoices/ksef/${encodeURIComponent(ksefNumber as string)}`,
+        `${resolveBase()}/invoices/ksef/${encodeURIComponent(ksefNumber)}`,
         { headers: { Authorization: auth } },
         res,
       );
     } catch (e) {
       res.status(500).json({ message: (e as Error).message });
     }
-  });
+  };
+
+  app.post("/api/invoices/download", (req, res) => downloadInvoice(req, res, req.body?.ksefNumber));
+  app.get("/api/invoices/download", (req, res) => downloadInvoice(req, res, req.query.ksefNumber));
 
   const contactFormLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
