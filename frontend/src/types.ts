@@ -14,6 +14,12 @@ export type SubjectType =
   | "Subject3"
   | "SubjectAuthorized";
 
+/** Wybór w formularzu: jedna rola z KSeF albo zakupy i sprzedaż razem w jednej paczce. */
+export type SubjectChoice = SubjectType | "Both";
+
+/** Faktury zakupu (Subject2) i sprzedaży (Subject1) – kolejność = kolejność pobierania. */
+export const BOTH_SUBJECT_TYPES: readonly SubjectType[] = ["Subject2", "Subject1"];
+
 // InvoiceQueryDateType z OpenAPI spec KSeF v2
 export type DateType = "Issue" | "Invoicing" | "PermanentStorage";
 
@@ -24,7 +30,8 @@ export interface DownloadInvoicesRequest {
   token: string;
   contextType: ContextIdentifierType;
   contextValue: string;
-  subjectType: SubjectType;
+  /** Jedna rola albo kilka – wtedy faktury trafiają do jednego ZIP-a, każda rola w osobnym folderze. */
+  subjectTypes: SubjectType[];
   dateType: DateType;
   dateFrom: string;
   dateTo: string;

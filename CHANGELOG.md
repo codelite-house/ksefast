@@ -10,6 +10,7 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ### Dodano
 
+- Opcja "Zakupy + sprzedaż": faktury zakupu i sprzedaży z wybranego miesiąca w jednej paczce ZIP (XML lub PDF), w folderach `zakupy/` i `sprzedaz/` (folder także w `manifest.json`). Jedno logowanie do KSeF, dwa wyszukiwania; samofaktury występujące w obu rolach trafiają do paczki raz. Dostępna też w "Opcjach zaawansowanych" jako "Podmiot 1 + 2"
 - Pobieranie w aplikacji webowej przestrzega limitów KSeF (16 faktur/min, 64/h): pauza ~4,5 s między fakturami, ponawianie po `429` zgodnie z `Retry-After` (proxy przekazuje teraz ten nagłówek) i po błędach 5xx. Podczas pauzy widać odliczanie "Limit KSeF – wznowienie za 0:45". Logika limitów jest wspólna z CLI (`frontend/src/lib/ksefRateLimit.ts`)
 - Pobrane faktury nigdy nie przepadają: po wyczerpaniu limitu godzinowego, zerwaniu połączenia albo zatrzymaniu pobierania powstaje paczka częściowa z plikiem `BRAKUJACE.txt` (numery KSeF brakujących faktur), a przycisk "Dociągnij brakujące" pobiera resztę, gdy KSeF znów pozwoli. Pojedyncza faktura niedostępna w KSeF (np. jeszcze przetwarzana) nie przerywa całej paczki
 - Przycisk "Zatrzymaj i zapisz pobrane" w trakcie pobierania i ostrzeżenie przed zamknięciem karty

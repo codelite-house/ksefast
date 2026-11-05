@@ -11,7 +11,7 @@ import { shine } from "../animations";
 import { useDownloadForm, type InvalidField } from "../hooks/useDownloadForm";
 import { KsefApiError } from "../services/apiClient";
 import { brand } from "../theme";
-import type { DownloadFormat, SubjectType } from "../types";
+import type { DownloadFormat, SubjectChoice } from "../types";
 import AdvancedOptions from "./download/AdvancedOptions";
 import ChoiceCards, { type Choice } from "./download/ChoiceCards";
 import DownloadStatus from "./download/DownloadStatus";
@@ -20,9 +20,11 @@ import MonthPicker from "./download/MonthPicker";
 import SectionTitle from "./download/SectionTitle";
 import TokenField from "./download/TokenField";
 import GlowCard from "./ui/GlowCard";
-import { CheckIcon, CodeIcon, DownloadIcon, FileTextIcon } from "./ui/icons";
+import { ArchiveIcon, CheckIcon, CodeIcon, DownloadIcon, FileTextIcon } from "./ui/icons";
 
-const SUBJECT_CHOICES: readonly Choice<"Subject1" | "Subject2">[] = [
+type MainSubjectChoice = Extract<SubjectChoice, "Subject1" | "Subject2" | "Both">;
+
+const SUBJECT_CHOICES: readonly Choice<MainSubjectChoice>[] = [
   {
     value: "Subject2",
     title: "Faktury zakupu",
@@ -34,6 +36,12 @@ const SUBJECT_CHOICES: readonly Choice<"Subject1" | "Subject2">[] = [
     title: "Faktury sprzedaży",
     description: "Wystawione przez Ciebie (jesteś sprzedawcą)",
     icon: <FileTextIcon sx={{ fontSize: 20 }} />,
+  },
+  {
+    value: "Both",
+    title: "Zakupy + sprzedaż",
+    description: "Wszystko w jednym ZIP-ie, w osobnych folderach",
+    icon: <ArchiveIcon sx={{ fontSize: 20 }} />,
   },
 ];
 
@@ -141,9 +149,9 @@ const DownloadForm = () => {
             <MonthPicker value={fields.selectedMonth} onChange={setters.setSelectedMonth} />
             <ChoiceCards
               label="Rodzaj faktur"
-              value={fields.subjectType as "Subject1" | "Subject2"}
+              value={fields.subjectType as MainSubjectChoice}
               options={SUBJECT_CHOICES}
-              onChange={(value: SubjectType) => setters.setSubjectType(value)}
+              onChange={(value: MainSubjectChoice) => setters.setSubjectType(value)}
             />
             <ChoiceCards
               label="Format paczki"

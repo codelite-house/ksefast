@@ -8,8 +8,9 @@ import type {
   DownloadFormat,
   DownloadInvoicesRequest,
   EnvironmentName,
-  SubjectType,
+  SubjectChoice,
 } from "../types";
+import { BOTH_SUBJECT_TYPES } from "../types";
 import { DownloadCancelledError, useDownloadInvoices, type DownloadResult } from "./useDownloadInvoices";
 
 export type InvalidField = "token" | "contextValue";
@@ -35,7 +36,7 @@ export const useDownloadForm = () => {
   const [token, setToken] = useState("");
   const [contextType, setContextTypeState] = useState<ContextIdentifierType>("Nip");
   const [contextValue, setContextValueState] = useState("");
-  const [subjectType, setSubjectType] = useState<SubjectType>("Subject1");
+  const [subjectType, setSubjectType] = useState<SubjectChoice>("Subject1");
   const [dateType, setDateType] = useState<DateType>("Invoicing");
   const [selectedMonth, setSelectedMonth] = useState(defaultMonth.label);
   const [format, setFormat] = useState<DownloadFormat>("xml");
@@ -90,7 +91,7 @@ export const useDownloadForm = () => {
       token,
       contextType,
       contextValue,
-      subjectType,
+      subjectTypes: subjectType === "Both" ? [...BOTH_SUBJECT_TYPES] : [subjectType],
       dateType,
       dateFrom: selectedMonthData.dateFrom,
       dateTo: selectedMonthData.dateTo,

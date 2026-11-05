@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { createArchiveBuilder } from "../archiveService";
 import { downloadInvoiceBatch, type BatchStopReason } from "../lib/downloadInvoiceBatch";
-import { fetchAllInvoiceMetadata } from "../lib/fetchAllInvoiceMetadata";
+import { MAX_INVOICES_PER_EXPORT, fetchAllInvoiceMetadata } from "../lib/fetchAllInvoiceMetadata";
 import { authenticateWithToken } from "../lib/authenticateWithToken";
 import { INVOICE_DOWNLOAD_PAUSE_MS, createPacer } from "../lib/ksefRateLimit";
 import type { KsefRequestControl } from "../services/apiClient";
@@ -21,9 +21,25 @@ import type {
   DownloadInvoicesRequest,
   DownloadProgress,
   InvoiceMetadata,
+  SubjectType,
 } from "../types";
 
 const DOWNLOAD_CHUNK_SIZE = 25;
+
+/** Foldery w paczce, gdy pobieramy kilka ról naraz. */
+const SUBJECT_FOLDERS: Record<SubjectType, string> = {
+  Subject1: "sprzedaz",
+  Subject2: "zakupy",
+  Subject3: "podmiot3",
+  SubjectAuthorized: "upowazniony",
+};
+
+const SUBJECT_LABELS: Record<SubjectType, string> = {
+  Subject1: "sprzedaży",
+  Subject2: "zakupu",
+  Subject3: "podmiotu 3",
+  SubjectAuthorized: "podmiotu upoważnionego",
+};
 
 // Dłuższe `Retry-After` (limit godzinowy KSeF) kończy pobieranie częściowym ZIP-em zamiast czekania.
 const MAX_RATE_LIMIT_WAIT_SEC = 120;
@@ -108,28 +124,51 @@ export const useDownloadInvoices = () => {
 
         report({ phase: "metadata", message: "Wyszukiwanie faktur…", current: 0 });
 
-        const foundInvoices = await fetchAllInvoiceMetadata(
-          environment,
-          accessToken,
-          {
-            subjectType: request.subjectType,
-            dateRange: {
-              dateType: request.dateType,
-              from: request.dateFrom,
-              to: request.dateTo,
+        // Kilka ról (zakupy + sprzedaż) = kilka wyszukiwań w tej samej sesji, wyniki w osobnych folderach.
+        const multiSubject = request.subjectTypes.length > 1;
+        const folderByKsefNumber = new Map<string, string>();
+        const foundInvoices: InvoiceMetadata[] = [];
+
+        for (const subjectType of request.subjectTypes) {
+          const alreadyFound = foundInvoices.length;
+          const label = multiSubject ? ` ${SUBJECT_LABELS[subjectType]}` : "";
+          const invoices = await fetchAllInvoiceMetadata(
+            environment,
+            accessToken,
+            {
+              subjectType,
+              dateRange: {
+                dateType: request.dateType,
+                from: request.dateFrom,
+                to: request.dateTo,
+              },
             },
-          },
-          {
-            onFoundCount: (count) =>
-              report({
-                phase: "metadata",
-                message: `Wyszukiwanie faktur… (znaleziono ${count})`,
-                current: count,
-              }),
-            query: (filters, pageOffset, pageSize) =>
-              queryInvoiceMetadata(environment, accessToken, filters, pageOffset, pageSize, control),
-          },
-        );
+            {
+              onFoundCount: (count) =>
+                report({
+                  phase: "metadata",
+                  message: `Wyszukiwanie faktur${label}… (znaleziono ${alreadyFound + count})`,
+                  current: alreadyFound + count,
+                }),
+              query: (filters, pageOffset, pageSize) =>
+                queryInvoiceMetadata(environment, accessToken, filters, pageOffset, pageSize, control),
+            },
+          );
+          signal.throwIfAborted();
+
+          for (const invoice of invoices) {
+            // Samofakturowanie (sprzedawca = nabywca) wraca w obu rolach – w paczce wystarczy raz.
+            if (folderByKsefNumber.has(invoice.ksefNumber)) continue;
+            folderByKsefNumber.set(invoice.ksefNumber, SUBJECT_FOLDERS[subjectType]);
+            foundInvoices.push(invoice);
+          }
+        }
+
+        if (foundInvoices.length > MAX_INVOICES_PER_EXPORT) {
+          throw new Error(
+            `Wybrany okres zawiera ponad ${MAX_INVOICES_PER_EXPORT} faktur. Pobierz zakupy i sprzedaż osobno albo wybierz krótszy zakres.`,
+          );
+        }
 
         const wanted = request.onlyKsefNumbers && new Set(request.onlyKsefNumbers);
         const allInvoices = wanted
@@ -141,7 +180,10 @@ export const useDownloadInvoices = () => {
         }
 
         const total = allInvoices.length;
-        const archive = createArchiveBuilder(request.format);
+        const archive = createArchiveBuilder(
+          request.format,
+          multiSubject ? (metadata) => folderByKsefNumber.get(metadata.ksefNumber) : undefined,
+        );
         const downloadMessage = (count: number) => `Pobieranie faktur… (${count}/${total})`;
 
         report({ phase: "download", message: downloadMessage(0), current: 0, total });
@@ -188,10 +230,11 @@ export const useDownloadInvoices = () => {
         const blob = await archive.finalize();
         const today = new Date().toISOString().slice(0, 10);
         const suffix = request.onlyKsefNumbers ? "-uzupelnienie" : batch.missing.length > 0 ? "-czesciowa" : "";
+        const scope = multiSubject ? "-zakupy-sprzedaz" : "";
 
         return {
           blob,
-          fileName: `ksefast-${request.format}-${today}${suffix}.zip`,
+          fileName: `ksefast-${request.format}${scope}-${today}${suffix}.zip`,
           invoiceCount: batch.downloadedCount,
           totalCount: total,
           missing: batch.missing,

@@ -13,7 +13,14 @@ import type {
 
 const PDF_CONCURRENCY = 4;
 
-const manifestEntry = (metadata: InvoiceMetadata) => ({
+/** Folder faktury w paczce (np. `zakupy`) – brak = katalog główny. */
+export type InvoiceFolderResolver = (metadata: InvoiceMetadata) => string | undefined;
+
+const withFolder = (folder: string | undefined, name: string): string =>
+  folder ? `${folder}/${name}` : name;
+
+const manifestEntry = (metadata: InvoiceMetadata, folder?: string) => ({
+  ...(folder && { folder }),
   ksefNumber: metadata.ksefNumber,
   invoiceNumber: metadata.invoiceNumber,
   issueDate: metadata.issueDate,
@@ -23,9 +30,13 @@ const manifestEntry = (metadata: InvoiceMetadata) => ({
   currency: metadata.currency,
 });
 
-const addXmlInvoices = (zip: JSZip, invoices: DownloadedInvoice[]): void => {
+const addXmlInvoices = (
+  zip: JSZip,
+  invoices: DownloadedInvoice[],
+  folderFor: InvoiceFolderResolver,
+): void => {
   for (const invoice of invoices) {
-    zip.file(buildInvoiceFileName(invoice, "xml"), invoice.xml);
+    zip.file(withFolder(folderFor(invoice.metadata), buildInvoiceFileName(invoice, "xml")), invoice.xml);
   }
 };
 
@@ -58,12 +69,13 @@ export const generateInvoicePdf = async (
 const addPdfInvoices = async (
   zip: JSZip,
   invoices: DownloadedInvoice[],
+  folderFor: InvoiceFolderResolver,
 ): Promise<void> => {
   const pdfEntries = await mapWithConcurrency(
     invoices,
     PDF_CONCURRENCY,
     async (invoice) => ({
-      name: buildInvoiceFileName(invoice, "pdf"),
+      name: withFolder(folderFor(invoice.metadata), buildInvoiceFileName(invoice, "pdf")),
       buffer: await generateInvoicePdf(invoice),
     }),
   );
@@ -92,7 +104,10 @@ const missingFileContent = (invoices: InvoiceMetadata[]): string =>
     "",
   ].join("\r\n");
 
-export const createArchiveBuilder = (format: DownloadFormat): ArchiveBuilder => {
+export const createArchiveBuilder = (
+  format: DownloadFormat,
+  folderFor: InvoiceFolderResolver = () => undefined,
+): ArchiveBuilder => {
   const zip = new JSZip();
   const manifestInvoices: ReturnType<typeof manifestEntry>[] = [];
   let missing: InvoiceMetadata[] = [];
@@ -102,13 +117,13 @@ export const createArchiveBuilder = (format: DownloadFormat): ArchiveBuilder => 
       if (invoices.length === 0) return;
 
       if (format === "xml") {
-        addXmlInvoices(zip, invoices);
+        addXmlInvoices(zip, invoices, folderFor);
       } else {
-        await addPdfInvoices(zip, invoices);
+        await addPdfInvoices(zip, invoices, folderFor);
       }
 
       for (const { metadata } of invoices) {
-        manifestInvoices.push(manifestEntry(metadata));
+        manifestInvoices.push(manifestEntry(metadata, folderFor(metadata)));
       }
     },
     setMissing: (invoices) => {
@@ -126,7 +141,9 @@ export const createArchiveBuilder = (format: DownloadFormat): ArchiveBuilder => 
             format,
             invoiceCount: manifestInvoices.length,
             invoices: manifestInvoices,
-            ...(missing.length > 0 && { missingInvoices: missing.map(manifestEntry) }),
+            ...(missing.length > 0 && {
+              missingInvoices: missing.map((metadata) => manifestEntry(metadata, folderFor(metadata))),
+            }),
           },
           null,
           2,

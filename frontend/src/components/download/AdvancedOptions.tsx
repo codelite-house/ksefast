@@ -6,16 +6,16 @@ import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 
-import type { ContextIdentifierType, DateType, SubjectType } from "../../types";
+import type { ContextIdentifierType, DateType, SubjectChoice } from "../../types";
 import { brand } from "../../theme";
 import { ChevronDownIcon } from "../ui/icons";
 
 interface AdvancedOptionsProps {
   contextType: ContextIdentifierType;
-  subjectType: SubjectType;
+  subjectType: SubjectChoice;
   dateType: DateType;
   onContextTypeChange: (value: ContextIdentifierType) => void;
-  onSubjectTypeChange: (value: SubjectType) => void;
+  onSubjectTypeChange: (value: SubjectChoice) => void;
   onDateTypeChange: (value: DateType) => void;
 }
 
@@ -93,11 +93,12 @@ const AdvancedOptions = ({
             select
             label="Rola w wyszukiwaniu"
             value={subjectType}
-            onChange={(event) => onSubjectTypeChange(event.target.value as SubjectType)}
+            onChange={(event) => onSubjectTypeChange(event.target.value as SubjectChoice)}
             fullWidth
           >
             <MenuItem value="Subject1">Podmiot 1 / sprzedawca</MenuItem>
             <MenuItem value="Subject2">Podmiot 2 / nabywca</MenuItem>
+            <MenuItem value="Both">Podmiot 1 + 2 (sprzedaż i zakupy)</MenuItem>
             <MenuItem value="Subject3">Podmiot 3</MenuItem>
             <MenuItem value="SubjectAuthorized">Podmiot upoważniony</MenuItem>
           </TextField>
