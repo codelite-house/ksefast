@@ -352,6 +352,18 @@ test("proxy maps name/email/message to senderName/senderEmail/content and includ
 
 // ── CORS tests (869efmtc3) ──────────────────────────────────────────────────
 
+test("does not expose x-powered-by", async () => {
+  const app = createApp();
+  const server = app.listen(0);
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const res = await originalFetch(`http://127.0.0.1:${port}/api/contact/messages`, { method: "OPTIONS" });
+    assert.equal(res.headers.get("x-powered-by"), null);
+  } finally {
+    await new Promise<void>((r, j) => server.close((e) => e ? j(e) : r()));
+  }
+});
+
 test("CORS: no allowlist, non-production — returns wildcard origin", async () => {
   // NODE_ENV not set (dev mode), no KSEF_ALLOWED_ORIGINS
   process.env.CONTACT_SERVICE_BEARER_TOKEN = "tok";

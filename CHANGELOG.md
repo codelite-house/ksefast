@@ -31,6 +31,10 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 - Formularz kontaktowy: błąd "Contact form is temporarily unavailable" – wbudowany `fetch` w Node po cichu ignoruje własny nagłówek `Host`, więc Zitadel (wywoływany po wewnętrznym adresie klastra) nie rozpoznawał instancji i odpowiadał 404 "Instance not found". Serwer podaje teraz zewnętrzną domenę nagłówkami `x-zitadel-instance-host` i `x-forwarded-host`, które `fetch` przepuszcza; dodano test regresji
 
+### Bezpieczeństwo
+
+- Nagłówki bezpieczeństwa na stronie i API (`frontend/nginx-security-headers.conf`, dołączany w każdym bloku `location`): CSP, HSTS, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`. Strony, na której wkleja się token KSeF, nie da się osadzić w obcej ramce, a skrypt spoza domeny się nie uruchomi. Serwer nie wysyła już `x-powered-by`
+
 ### Zmieniono
 
 - Opisy prywatności w README, `SECURITY.md`, sekcji "Prywatność" i FAQ zgodne z tym, co robi kod: szyfrowany jest długoterminowy token KSeF, a tymczasowy token sesji oraz faktury przechodzą przez serwer pośredniczący w tranzycie (TLS), bez zapisu. Usunięto zdania "faktura nigdy nie dotyka zewnętrznego serwera", "serwer widzi tylko zaszyfrowany blob" i "serwer nie loguje". Wskazano operatora wersji hostowanej i opcje bez pośrednika (własny `docker compose up`, CLI)

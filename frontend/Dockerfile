@@ -21,6 +21,7 @@ ENV BACKEND_HOST=backend \
     BACKEND_PORT=3001 \
     NGINX_ENVSUBST_FILTER=^BACKEND_
 COPY nginx.conf /etc/nginx/templates/default.conf.template
+COPY nginx-security-headers.conf /etc/nginx/snippets/security-headers.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
