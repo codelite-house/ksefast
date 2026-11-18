@@ -10,7 +10,9 @@ import ComparisonSection from "./components/ComparisonSection";
 import ContactPanel from "./components/ContactPanel";
 import DownloadForm from "./components/DownloadForm";
 import FaqSection from "./components/FaqSection";
+import GuidePage from "./components/GuidePage";
 import HeroCopy from "./components/HeroCopy";
+import { findGuide } from "./content/guides";
 import HowItWorks from "./components/HowItWorks";
 import PrivacyPolicyPage from "./components/PrivacyPolicyPage";
 import PrivacySection from "./components/PrivacySection";
@@ -21,15 +23,17 @@ import Reveal from "./components/ui/Reveal";
 import Section, { GradientText } from "./components/ui/Section";
 
 const App = () => {
-  // Jedyna podstrona – bez routera; nginx i tak serwuje index.html dla każdej ścieżki.
-  if (window.location.pathname.replace(/\/$/, "") === PRIVACY_POLICY_PATH) {
+  // Kilka podstron – bez routera; nginx serwuje index.html (albo statyczny HTML poradnika) dla każdej ścieżki.
+  const pathname = window.location.pathname.replace(/\/$/, "");
+  const guide = findGuide(pathname);
+  if (pathname === PRIVACY_POLICY_PATH || guide) {
     return (
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <AuroraBackground />
         <AppHeader />
         <Container maxWidth={false} sx={{ maxWidth: 1240, px: { xs: 2, sm: 3 } }}>
-          <PrivacyPolicyPage />
+          {guide ? <GuidePage guide={guide} /> : <PrivacyPolicyPage />}
           <AppFooter />
         </Container>
       </ThemeProvider>

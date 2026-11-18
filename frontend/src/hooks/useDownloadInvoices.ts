@@ -1,6 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { createArchiveBuilder } from "../archiveService";
 import { downloadInvoiceBatch, type BatchStopReason } from "../lib/downloadInvoiceBatch";
 import { MAX_INVOICES_PER_EXPORT, fetchAllInvoiceMetadata } from "../lib/fetchAllInvoiceMetadata";
 import { authenticateWithToken } from "../lib/authenticateWithToken";
@@ -25,6 +24,20 @@ import type {
 } from "../types";
 
 const DOWNLOAD_CHUNK_SIZE = 25;
+
+/**
+ * Generator PDF MF i JSZip to większość wagi aplikacji – ładujemy je dopiero przy pobieraniu,
+ * żeby strona (i jej ocena szybkości w Google) nie czekała na nie. Promise jest współdzielony,
+ * więc wstępne doładowanie w tle (preloadArchiveService) i pobieranie nie ściągają go dwa razy.
+ */
+let archiveServicePromise: Promise<typeof import("../archiveService")> | null = null;
+export const preloadArchiveService = () => {
+  archiveServicePromise ??= import("../archiveService").catch((error) => {
+    archiveServicePromise = null;
+    throw error;
+  });
+  return archiveServicePromise;
+};
 
 /** Foldery w paczce, gdy pobieramy kilka ról naraz. */
 const SUBJECT_FOLDERS: Record<SubjectType, string> = {
@@ -180,6 +193,7 @@ export const useDownloadInvoices = () => {
         }
 
         const total = allInvoices.length;
+        const { createArchiveBuilder } = await preloadArchiveService();
         const archive = createArchiveBuilder(
           request.format,
           multiSubject ? (metadata) => folderByKsefNumber.get(metadata.ksefNumber) : undefined,

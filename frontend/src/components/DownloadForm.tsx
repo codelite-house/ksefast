@@ -9,6 +9,7 @@ import Typography from "@mui/material/Typography";
 
 import { shine } from "../animations";
 import { useDownloadForm, type InvalidField } from "../hooks/useDownloadForm";
+import { preloadArchiveService } from "../hooks/useDownloadInvoices";
 import { KsefApiError } from "../services/apiClient";
 import { brand } from "../theme";
 import type { DownloadFormat, SubjectChoice } from "../types";
@@ -21,6 +22,12 @@ import SectionTitle from "./download/SectionTitle";
 import TokenField from "./download/TokenField";
 import GlowCard from "./ui/GlowCard";
 import { ArchiveIcon, CheckIcon, CodeIcon, DownloadIcon, FileTextIcon } from "./ui/icons";
+
+const warmUpArchive = () => {
+  preloadArchiveService().catch(() => {
+    // Nieudane doładowanie w tle nie jest błędem – pobieranie spróbuje ponownie.
+  });
+};
 
 type MainSubjectChoice = Extract<SubjectChoice, "Subject1" | "Subject2" | "Both">;
 
@@ -104,6 +111,9 @@ const DownloadForm = () => {
         component="form"
         noValidate
         onSubmit={(event) => form.handleSubmit(event, focusInvalid)}
+        // Pierwsza interakcja z formularzem = doładuj w tle generator PDF i ZIP (patrz preloadArchiveService).
+        onFocusCapture={warmUpArchive}
+        onPointerEnter={warmUpArchive}
         sx={{ display: "grid", gap: 3 }}
       >
         <Box sx={{ display: "grid", gap: 2 }}>

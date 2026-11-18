@@ -18,7 +18,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     q: "Skąd wziąć token KSeF?",
-    a: "Token generujesz samodzielnie w oficjalnym portalu KSeF po zalogowaniu na konto firmy. Powinien mieć uprawnienie do odczytu faktur. Krok po kroku opisuje to instrukcja Ministerstwa Finansów na podatki.gov.pl/ksef.",
+    a: "Token generujesz samodzielnie w oficjalnym portalu KSeF po zalogowaniu na konto firmy. Powinien mieć uprawnienie do odczytu faktur. Krok po kroku opisuje to nasz poradnik: ksefast.pl/jak-wygenerowac-token-ksef.",
   },
   {
     q: "Jak pobrać faktury z KSeF do PDF?",

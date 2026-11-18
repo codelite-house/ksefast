@@ -10,6 +10,11 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ### Dodano
 
+- 9 poradników SEO (`frontend/src/content/guides.ts`), m.in. `/jak-wygenerowac-token-ksef`, `/jak-pobrac-faktury-z-ksef`, `/faktury-ksef-do-pdf`, `/limit-pobierania-faktur-ksef`. Build zapisuje każdy jako statyczny `<slug>.html` z własnym title, description, canonical, Open Graph i treścią artykułu (wyszukiwarki widzą treść bez JS); nginx serwuje je przez `try_files $uri.html`. `sitemap.xml` generowana przy buildzie z listy poradników. Linki do poradników w stopce
+- Link "Nie masz tokena? Instrukcja krok po kroku" przy polu tokena prowadzi do własnego poradnika zamiast ogólnej strony MF
+- Przycisk "Poleć znajomemu lub księgowej" na ekranie sukcesu (systemowe udostępnianie albo kopiowanie linku)
+- Open Graph i JSON-LD `WebApplication` na stronie głównej, opis meta z polskimi znakami, ciemne tło przed załadowaniem Reacta
+- Generator PDF MF i JSZip ładują się dopiero przy pierwszej interakcji z formularzem (dynamiczny import): JS strony startowej spadł z ~1,1 MB do ~160 kB gzip
 - Opcja "Zakupy + sprzedaż": faktury zakupu i sprzedaży z wybranego miesiąca w jednej paczce ZIP (XML lub PDF), w folderach `zakupy/` i `sprzedaz/` (folder także w `manifest.json`). Jedno logowanie do KSeF, dwa wyszukiwania; samofaktury występujące w obu rolach trafiają do paczki raz. Dostępna też w "Opcjach zaawansowanych" jako "Podmiot 1 + 2"
 - Pobieranie w aplikacji webowej przestrzega limitów KSeF (16 faktur/min, 64/h): pauza ~4,5 s między fakturami, ponawianie po `429` zgodnie z `Retry-After` (proxy przekazuje teraz ten nagłówek) i po błędach 5xx. Podczas pauzy widać odliczanie "Limit KSeF – wznowienie za 0:45". Logika limitów jest wspólna z CLI (`frontend/src/lib/ksefRateLimit.ts`)
 - Pobrane faktury nigdy nie przepadają: po wyczerpaniu limitu godzinowego, zerwaniu połączenia albo zatrzymaniu pobierania powstaje paczka częściowa z plikiem `BRAKUJACE.txt` (numery KSeF brakujących faktur), a przycisk "Dociągnij brakujące" pobiera resztę, gdy KSeF znów pozwoli. Pojedyncza faktura niedostępna w KSeF (np. jeszcze przetwarzana) nie przerywa całej paczki

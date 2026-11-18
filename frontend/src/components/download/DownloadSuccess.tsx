@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
@@ -6,7 +7,7 @@ import { confetti, popIn, pulseRing } from "../../animations";
 import { formatCountdown, useCountdown } from "../../hooks/useCountdown";
 import type { DownloadResult } from "../../hooks/useDownloadInvoices";
 import { brand } from "../../theme";
-import { AlertIcon, CheckIcon, CoffeeIcon, DownloadIcon, RefreshIcon } from "../ui/icons";
+import { AlertIcon, CheckIcon, ClipboardIcon, CoffeeIcon, DownloadIcon, RefreshIcon } from "../ui/icons";
 
 const CONFETTI_COLORS = [brand.sky, brand.green, brand.amber, "#fde68a", "#a78bfa"];
 
@@ -23,6 +24,38 @@ const CONFETTI = Array.from({ length: 26 }, (_, index) => {
     delay: (index % 5) * 30,
   };
 });
+
+const SHARE_URL = "https://ksefast.pl/";
+const SHARE_TEXT = "Darmowe pobieranie wszystkich faktur z KSeF jedną paczką ZIP (XML albo PDF), bez rejestracji:";
+
+/** Polecenie znajomemu/księgowej – systemowe „Udostępnij” albo kopiowanie linku. */
+const ShareButton = () => {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: "KSeFast", text: SHARE_TEXT, url: SHARE_URL });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${SHARE_TEXT} ${SHARE_URL}`);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // Brak dostępu do schowka – link i tak jest widoczny w pasku adresu.
+    }
+  };
+
+  return (
+    <Button variant="outlined" color="primary" onClick={handleShare} startIcon={copied ? <CheckIcon /> : <ClipboardIcon />}>
+      {copied ? "Link skopiowany" : "Poleć znajomemu lub księgowej"}
+    </Button>
+  );
+};
 
 interface DownloadSuccessProps {
   result: DownloadResult;
@@ -179,9 +212,17 @@ const DownloadSuccess = ({ result, onReset, onDownloadMissing }: DownloadSuccess
         )}
       </Box>
       {!partial && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
-          Zaoszczędziłeś właśnie sporo czasu – kawa jest dobrowolna, narzędzie zostaje darmowe.
-        </Typography>
+        <>
+          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1.5 }}>
+            Zaoszczędziłeś właśnie sporo czasu – kawa jest dobrowolna, narzędzie zostaje darmowe.
+          </Typography>
+          <Box sx={{ mt: 2.5, pt: 2.5, borderTop: "1px solid", borderColor: brand.line }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.25 }}>
+              Bez kawy też pomożesz – poleć KSeFast komuś, kto pobiera faktury z KSeF.
+            </Typography>
+            <ShareButton />
+          </Box>
+        </>
       )}
     </Box>
   );

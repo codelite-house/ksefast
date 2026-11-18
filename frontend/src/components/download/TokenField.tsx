@@ -5,6 +5,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Link from "@mui/material/Link";
 import TextField from "@mui/material/TextField";
 
+import { TOKEN_GUIDE_PATH } from "../../content/guides";
 import { brand } from "../../theme";
 import { ClipboardIcon, EyeIcon, EyeOffIcon, LockIcon } from "../ui/icons";
 
@@ -43,8 +44,8 @@ const TokenField = ({ value, error, onChange, onBlur, inputRef }: TokenFieldProp
         error ?? (
           <>
             Zaszyfrowany lokalnie, zanim opuści przeglądarkę.{" "}
-            <Link href="https://www.podatki.gov.pl/ksef/" target="_blank" rel="noopener noreferrer">
-              Skąd wziąć token?
+            <Link href={TOKEN_GUIDE_PATH} target="_blank" rel="noopener">
+              Nie masz tokena? Instrukcja krok po kroku
             </Link>
           </>
         )

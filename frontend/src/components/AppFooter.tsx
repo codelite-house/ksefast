@@ -2,6 +2,7 @@ import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Typography from "@mui/material/Typography";
 
+import { guides } from "../content/guides";
 import { OPERATOR, PRIVACY_POLICY_PATH } from "../content/privacyPolicy";
 import { brand } from "../theme";
 import BrandMark from "./ui/BrandMark";
@@ -30,6 +31,20 @@ const AppFooter = () => (
         </Link>
         . Operator ksefast.pl: {OPERATOR.name}, NIP {OPERATOR.nip}.
       </Typography>
+    </Box>
+    <Box component="nav" aria-label="Poradniki">
+      <Typography variant="body2" sx={{ fontWeight: 700 }}>
+        Poradniki
+      </Typography>
+      <Box component="ul" sx={{ m: 0, mt: 0.75, p: 0, listStyle: "none", display: "grid", gap: 0.5 }}>
+        {guides.map((guide) => (
+          <li key={guide.slug}>
+            <Link href={`/${guide.slug}`} variant="body2" color="text.secondary">
+              {guide.linkLabel}
+            </Link>
+          </li>
+        ))}
+      </Box>
     </Box>
     <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.8 }}>
       <Link href={PRIVACY_POLICY_PATH}>Polityka prywatności</Link> ·{" "}
