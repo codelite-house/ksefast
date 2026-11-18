@@ -1,4 +1,6 @@
-FROM node:22-alpine AS builder
+# Builder na glibc, nie alpine: natywny parser Rollupa >= 4.6x na musl (mały stos wątków) pada
+# z "Code is nested too deeply" na @tanstack/react-query. Obraz wynikowy i tak jest nginx-alpine.
+FROM node:22-slim AS builder
 WORKDIR /app
 
 COPY package.json ./package.json
